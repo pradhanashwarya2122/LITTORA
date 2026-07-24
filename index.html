@@ -1,0 +1,3833 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Littora Marine Intelligence</title>
+<link rel="stylesheet" href="https://unpkg.com/lenis@1.3.25/dist/lenis.css">
+<script src="https://unpkg.com/lenis@1.3.25/dist/lenis.min.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "ogl": "https://cdn.jsdelivr.net/npm/ogl@1.0.6/+esm"
+      }
+    }
+  </script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              blue: '#1e4b9b',
+              light: '#f0f5ff',
+              text: '#111827',
+              gray: '#6b7280'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['"Bricolage Grotesque"', 'sans-serif'],
+            serif: ['Newsreader', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-styles">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap');
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      color: #111827;
+      background-color: #f9fafb;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    /* ===== Background video helpers ===== */
+    .video-bg-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .video-bg-wrap video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+    }
+    .video-bg-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.55);
+    }
+    .card-video-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.05) 60%);
+    }
+
+    /* Fix: species-card / action-hub-card videos were missing a fill layer.
+       This is the actual <video> element that plays inside each card,
+       sitting under .card-video-overlay so the gradient keeps text legible. */
+    .species-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+    /* Fallback gradient shown behind the video layer at all times. If the
+       mp4 source loads, it plays on top and covers this; if it 404s (no
+       file at that path), the card still looks finished instead of blank. */
+    .species-card:nth-of-type(1) { background: linear-gradient(160deg, #0d4f6b, #062033); }
+    .species-card:nth-of-type(2) { background: linear-gradient(160deg, #0b3d63, #051a2e); }
+    .species-card:nth-of-type(3) { background: linear-gradient(160deg, #123a5e, #05192b); }
+    .species-card:nth-of-type(4) { background: linear-gradient(160deg, #4c1d95, #1e0a3c); }
+    .species-card:nth-of-type(5) { background: linear-gradient(160deg, #f97316cc, #7c2d12); }
+    .action-hub-card:nth-of-type(1) { background: linear-gradient(160deg, #1e3a8a, #0a1230); }
+    .action-hub-card:nth-of-type(2) { background: linear-gradient(160deg, #164e63, #05161f); }
+
+    /* ===== Magical ocean theme ===== */
+    * { transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, border-color 0.4s ease, background-color 0.3s ease, opacity 0.4s ease; }
+
+    @keyframes floatBubble {
+      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+      10%  { opacity: 0.7; }
+      90%  { opacity: 0.5; }
+      100% { transform: translateY(-420px) translateX(20px) scale(1.3); opacity: 0; }
+    }
+    @keyframes shimmerSweep {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes gentleGlow {
+      0%, 100% { box-shadow: 0 0 18px rgba(30,75,155,0.15), 0 0 0 rgba(96,165,250,0); }
+      50%      { box-shadow: 0 0 32px rgba(30,75,155,0.28), 0 0 14px rgba(96,165,250,0.25); }
+    }
+    @keyframes waveDrift {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes fadeUp {
+      0%   { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble-field {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .bubble {
+      position: absolute;
+      bottom: -40px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(173,216,255,0.15));
+      animation: floatBubble linear infinite;
+    }
+
+    .shimmer-text {
+      background: linear-gradient(100deg, #ffffff 0%, #cfe4ff 20%, #ffffff 45%, #8fc2ff 65%, #ffffff 85%, #cfe4ff 100%);
+      background-size: 250% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: shimmerSweep 7s ease-in-out infinite;
+      filter: drop-shadow(0 3px 22px rgba(3,16,38,0.55)) drop-shadow(0 1px 2px rgba(3,16,38,0.9));
+    }
+
+    .magic-card {
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease, border-color 0.45s ease;
+    }
+    .magic-card:hover {
+      transform: translateY(-6px) scale(1.015);
+      box-shadow: 0 20px 40px -12px rgba(30,75,155,0.35), 0 0 0 1px rgba(96,165,250,0.3);
+      border-color: rgba(96,165,250,0.6);
+    }
+
+    .glow-pulse { animation: gentleGlow 4s ease-in-out infinite; }
+
+    .wave-strip {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 40px;
+      background-repeat: repeat-x;
+      background-size: 50% 100%;
+      opacity: 0.5;
+      animation: waveDrift 12s linear infinite;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 Q 25 0 50 20 T 100 20 T 150 20 T 200 20 V40 H0 Z' fill='%2360a5fa' fill-opacity='0.25'/%3E%3C/svg%3E");
+    }
+
+    .fade-up { animation: fadeUp 0.8s ease both; }
+
+    /* ===== Magic typing text (hero second line) ===== */
+    .magic-text {
+      font-family: 'Newsreader', serif;
+      font-weight: 500;
+      font-style: normal;
+      background: linear-gradient(100deg, #e6f2ff 0%, #ffffff 30%, #a9d3ff 55%, #ffffff 80%, #e6f2ff 100%);
+      background-size: 280% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: shimmerSweep 6s ease-in-out infinite;
+      filter: drop-shadow(0 3px 18px rgba(3,16,38,0.55)) drop-shadow(0 1px 2px rgba(3,16,38,0.9));
+    }
+    #worldCursor {
+      font-family: 'Newsreader', serif;
+      color: #eaf4ff;
+      animation: none;
+      background: none;
+      -webkit-text-fill-color: #eaf4ff;
+      filter: drop-shadow(0 2px 10px rgba(3,16,38,0.6));
+    }
+
+    /* ===== Scroll reveal (premium: blur + scale + rise) ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(36px) scale(0.975);
+      filter: blur(6px);
+      transition: opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1), transform 1.1s cubic-bezier(0.16, 1, 0.3, 1), filter 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform, filter;
+    }
+    .reveal.reveal-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0px);
+    }
+    .reveal-stagger.reveal-visible .reveal-item {
+      animation: fadeUpBlur 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .reveal-stagger.reveal-visible .reveal-item:nth-child(1) { animation-delay: 0.05s; }
+    .reveal-stagger.reveal-visible .reveal-item:nth-child(2) { animation-delay: 0.12s; }
+    .reveal-stagger.reveal-visible .reveal-item:nth-child(3) { animation-delay: 0.19s; }
+    .reveal-stagger.reveal-visible .reveal-item:nth-child(4) { animation-delay: 0.26s; }
+    .reveal-stagger.reveal-visible .reveal-item:nth-child(5) { animation-delay: 0.33s; }
+    .reveal-stagger.reveal-visible .reveal-item:nth-child(6) { animation-delay: 0.40s; }
+    @keyframes fadeUpBlur {
+      from { opacity: 0; transform: translateY(26px) scale(0.97); filter: blur(5px); }
+      to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+    }
+    /* Subtle Lenis-driven parallax layer used by data-lenis-parallax */
+    [data-lenis-parallax] { will-change: transform; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-item, .magic-text, .shimmer-text, .bubble, .wave-strip, .glow-pulse {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+      }
+    }
+
+    /* ===== 1. Caustics light overlay ===== */
+    @keyframes causticsDrift {
+      0%   { transform: translate(0, 0) scale(1.1) rotate(0deg); }
+      50%  { transform: translate(-3%, 2%) scale(1.25) rotate(2deg); }
+      100% { transform: translate(0, 0) scale(1.1) rotate(0deg); }
+    }
+    .caustics-overlay {
+      position: absolute;
+      inset: -10%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.35;
+      mix-blend-mode: screen;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.02' numOctaves='2' seed='7' result='n'/%3E%3CfeColorMatrix in='n' type='matrix' values='0 0 0 0 0.55  0 0 0 0 0.75  0 0 0 0 1  0 0 0 0.9 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' amplitude='1' exponent='3' offset='0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23c)'/%3E%3C/svg%3E");
+      background-size: 60% 60%;
+      animation: causticsDrift 22s ease-in-out infinite;
+    }
+    .caustics-overlay.caustics-dark {
+      opacity: 0.18;
+      mix-blend-mode: overlay;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .caustics-overlay { animation: none; }
+    }
+
+    /* ===== 2. Depth-based scroll (parallax dive) ===== */
+    #depthOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(4,20,45,0) 0%, rgba(4,20,45,0.55) 100%);
+      opacity: 0;
+      transition: opacity 0.15s linear;
+    }
+    .parallax-layer { will-change: transform; }
+
+    /* ===== 3. Cursor ripple trail / 5. Sonar ping (shared) ===== */
+    @keyframes rippleExpand {
+      0%   { width: 0; height: 0; opacity: 0.55; border-width: 2px; }
+      100% { width: 160px; height: 160px; opacity: 0; border-width: 0.5px; }
+    }
+    @keyframes sonarExpand {
+      0%   { width: 0; height: 0; opacity: 0.7; border-width: 2px; }
+      70%  { opacity: 0.35; }
+      100% { width: 260px; height: 260px; opacity: 0; border-width: 0.5px; }
+    }
+    .ripple-ring {
+      position: absolute;
+      top: 0; left: 0;
+      border-radius: 50%;
+      border-style: solid;
+      border-color: rgba(255,255,255,0.75);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      animation: rippleExpand 900ms ease-out forwards;
+      z-index: 6;
+    }
+    .sonar-ring {
+      position: absolute;
+      top: 0; left: 0;
+      border-radius: 50%;
+      border-style: solid;
+      border-color: rgba(96,165,250,0.85);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      animation: sonarExpand 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      z-index: 15;
+    }
+    .ripple-zone { position: relative; }
+
+    /* ===== 6. Wave section dividers ===== */
+    .wave-divider {
+      position: absolute;
+      left: 0;
+      bottom: -1px;
+      width: 100%;
+      line-height: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .wave-divider svg {
+      width: 100%;
+      height: 48px;
+      display: block;
+    }
+
+    /* ===== 7. Ambient bioluminescence dots ===== */
+    @keyframes biolumePulse {
+      0%, 100% { opacity: 0.15; transform: scale(0.75); }
+      50%      { opacity: 0.9;  transform: scale(1.2); }
+    }
+    .biolume-field {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .biolume-dot {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(110,231,255,0.95), rgba(110,231,255,0) 72%);
+      filter: blur(0.5px);
+      animation: biolumePulse ease-in-out infinite;
+    }
+
+    /* ===== 8. Coastal map current-flow lines ===== */
+    .current-flow {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .current-flow path {
+      fill: none;
+      stroke: #60a5fa;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-dasharray: 7 12;
+      opacity: 0.45;
+      animation: currentFlow 3.2s linear infinite;
+    }
+    @keyframes currentFlow {
+      to { stroke-dashoffset: -190; }
+    }
+
+    /* ===== 9. Surface-break button sweep ===== */
+    .wave-button {
+      position: relative;
+      overflow: hidden;
+    }
+    .wave-button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+    .wave-button:hover::after {
+      transform: translateX(100%);
+    }
+
+    /* ===== 10. Bubble-stream loading overlay ===== */
+    #mapLoadingOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: #eaf2ff;
+      transition: opacity 0.6s ease;
+    }
+    .bubble-loader {
+      position: relative;
+      width: 90px;
+      height: 60px;
+    }
+    .bubble-loader span {
+      position: absolute;
+      bottom: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(96,165,250,0.35));
+      animation: floatBubble 1.4s ease-in infinite;
+    }
+
+    /* ===== 4. Live metric numbers ===== */
+    .live-metric { font-variant-numeric: tabular-nums; }
+    .live-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 5px;
+    }
+
+    .action-hub-card {
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease;
+    }
+    .action-hub-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 24px 48px -14px rgba(30,75,155,0.4);
+    }
+    .action-hub-card button {
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ===== Site-wide white-area background video ===== */
+    .site-bg-video-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .site-bg-video-wrap video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+    }
+
+    /* ===== Premium Live Alerts Feed ===== */
+    .alerts-panel {
+      position: relative;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.72));
+      backdrop-filter: blur(18px) saturate(140%);
+      border: 1px solid rgba(148, 187, 255, 0.35);
+      box-shadow: 0 30px 60px -25px rgba(16, 42, 97, 0.35), inset 0 1px 0 rgba(255,255,255,0.6);
+      overflow: hidden;
+    }
+    .alerts-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(120% 60% at 15% 0%, rgba(96,165,250,0.16), transparent 60%);
+      pointer-events: none;
+    }
+    @keyframes alertScan {
+      0%   { transform: translateY(-100%); opacity: 0; }
+      8%   { opacity: 0.6; }
+      92%  { opacity: 0.6; }
+      100% { transform: translateY(100%); opacity: 0; }
+    }
+    .alerts-panel::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 140px;
+      background: linear-gradient(180deg, transparent, rgba(96,165,250,0.15), transparent);
+      animation: alertScan 6s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes liveBadgePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); }
+      50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+    .live-badge-premium {
+      animation: liveBadgePulse 2s ease-in-out infinite;
+    }
+    .alert-card-premium {
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(6px);
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+    }
+    .alert-card-premium::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--severity-color, #60a5fa);
+      box-shadow: 0 0 12px var(--severity-color, #60a5fa);
+    }
+    .alert-card-premium:hover {
+      transform: translateX(4px) translateY(-3px);
+      box-shadow: 0 16px 32px -14px rgba(30,75,155,0.35);
+      border-color: var(--severity-color, #60a5fa);
+    }
+    .alert-card-premium .alert-shine {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.55) 35%, transparent 50%);
+      background-size: 250% 100%;
+      background-position: 120% 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .alert-card-premium:hover .alert-shine {
+      opacity: 1;
+      transition: background-position 0.9s ease;
+      background-position: -20% 0;
+    }
+    @keyframes alertEnter {
+      0%   { opacity: 0; transform: translateY(-18px) scale(0.97); max-height: 0; margin-bottom: 0; }
+      60%  { opacity: 1; }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .alert-enter {
+      animation: alertEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @keyframes alertExit {
+      0%   { opacity: 1; transform: translateX(0); }
+      100% { opacity: 0; transform: translateX(24px); max-height: 0; }
+    }
+    .alert-exit {
+      animation: alertExit 0.45s ease both;
+    }
+    @keyframes newFlash {
+      0%   { box-shadow: 0 0 0 0 rgba(96,165,250,0.55); }
+      100% { box-shadow: 0 0 0 14px rgba(96,165,250,0); }
+    }
+    .alert-new-flash {
+      animation: newFlash 1.6s ease;
+    }
+    .live-counter-tick { font-variant-numeric: tabular-nums; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .alerts-panel::after, .live-badge-premium, .alert-enter, .alert-exit, .alert-new-flash {
+        animation: none !important;
+      }
+    }
+
+    /* ===== FAQ accordion ===== */
+    .faq-item summary { list-style: none; }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item .faq-chevron { transition: transform 0.3s ease; }
+    .faq-item[open] .faq-chevron { transform: rotate(180deg); }
+    .faq-item:hover { border-color: rgba(30,75,155,0.35); }
+
+    .action-hub-card button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+    .action-hub-card button:hover::after {
+      transform: translateX(100%);
+    }
+
+    .species-card:hover span {
+      text-shadow: 0 0 12px rgba(96,165,250,0.9);
+    }
+
+    .hero-serif-line {
+      background: linear-gradient(100deg, #ffd98a 0%, #fff2d6 28%, #f5b95c 55%, #fff2d6 78%, #ffd98a 100%);
+      background-size: 260% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: shimmerSweep 8s ease-in-out infinite;
+      filter: drop-shadow(0 3px 18px rgba(2,12,30,0.55)) drop-shadow(0 1px 2px rgba(2,12,30,0.85));
+    }
+    .hero-subtext {
+      text-shadow: 0 2px 12px rgba(2,12,30,0.55), 0 1px 2px rgba(2,12,30,0.7);
+    }
+
+    /* ===== Premium "How Littora Works" step flow ===== */
+    .hiw-bg-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(600px 300px at 50% 0%, rgba(96,165,250,0.08), transparent 70%);
+      z-index: 0;
+    }
+    .hiw-rail {
+      position: absolute;
+      top: 44px;
+      left: 16.6%;
+      right: 16.6%;
+      height: 3px;
+      border-radius: 9999px;
+      background: rgba(30,75,155,0.1);
+      overflow: visible;
+    }
+    .hiw-rail-fill {
+      position: absolute;
+      top: 0; left: 0;
+      height: 100%;
+      width: 0%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #1e4b9b, #60a5fa, #7C5CFF);
+      transition: width 0.9s cubic-bezier(0.65,0,0.35,1);
+    }
+    .hiw-rail-orb {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      width: 12px; height: 12px;
+      margin-top: -6px;
+      margin-left: -6px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, #60a5fa 60%, transparent 100%);
+      box-shadow: 0 0 16px 4px rgba(96,165,250,0.85);
+      transition: left 0.9s cubic-bezier(0.65,0,0.35,1);
+    }
+
+    .hiw-step { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; padding: 0 0.5rem; }
+    .hiw-icon-orbit { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+    .hiw-icon-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      border: 1.5px dashed rgba(96,165,250,0.35);
+      transition: border-color 0.5s ease, transform 0.6s ease;
+    }
+    .hiw-icon-circle {
+      position: relative;
+      z-index: 2;
+      width: 64px; height: 64px;
+      border-radius: 9999px;
+      background: linear-gradient(150deg, #f0f5ff, #dbeaff);
+      border: 1px solid rgba(96,165,250,0.3);
+      display: flex; align-items: center; justify-content: center;
+      color: #1e4b9b;
+      box-shadow: 0 6px 18px rgba(30,75,155,0.12);
+      transition: transform 0.6s cubic-bezier(0.22,1,0.36,1), background 0.6s ease, color 0.6s ease, box-shadow 0.6s ease;
+    }
+    .hiw-step-badge {
+      position: absolute;
+      bottom: -4px; right: -2px;
+      z-index: 3;
+      width: 22px; height: 22px;
+      border-radius: 9999px;
+      background: #fff;
+      border: 1.5px solid rgba(96,165,250,0.4);
+      color: #1e4b9b;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.5s ease, color 0.5s ease, border-color 0.5s ease, transform 0.5s ease;
+    }
+    .hiw-card {
+      transition: transform 0.6s cubic-bezier(0.22,1,0.36,1);
+    }
+    .hiw-step-label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      color: #93c5fd;
+      margin-bottom: 0.35rem;
+      transition: color 0.5s ease;
+    }
+    .hiw-step-title { font-size: 1.05rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem; }
+    .hiw-step-desc { font-size: 0.875rem; color: #6b7280; max-width: 19rem; margin: 0 auto; }
+
+    .hiw-step.is-active .hiw-icon-ring {
+      border-color: rgba(96,165,250,0.9);
+      border-style: solid;
+      transform: scale(1.08);
+      animation: spinSlow 5s linear infinite;
+    }
+    .hiw-step.is-active .hiw-icon-circle {
+      background: linear-gradient(150deg, #1e4b9b, #3b6fd0 55%, #60a5fa);
+      color: #fff;
+      transform: scale(1.08) translateY(-2px);
+      box-shadow: 0 14px 32px -6px rgba(30,75,155,0.5), 0 0 0 6px rgba(96,165,250,0.15);
+    }
+    .hiw-step.is-active .hiw-step-badge {
+      background: #1e4b9b;
+      color: #fff;
+      border-color: #1e4b9b;
+      transform: scale(1.12);
+    }
+    .hiw-step.is-active .hiw-step-label { color: #1e4b9b; }
+    .hiw-step.is-active .hiw-card { transform: translateY(-3px); }
+
+    .hiw-mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 22px; margin-top: 0.9rem; justify-content: center; }
+    .hiw-mini-chart span {
+      width: 4px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #93c5fd, #1e4b9b);
+      opacity: 0.35;
+      height: 30%;
+      transition: opacity 0.4s ease;
+    }
+    .hiw-step.is-active .hiw-mini-chart span { opacity: 1; animation: waveBar 1s ease-in-out infinite; }
+    .hiw-mini-chart span:nth-child(1){animation-delay:0s;} .hiw-mini-chart span:nth-child(2){animation-delay:.1s;}
+    .hiw-mini-chart span:nth-child(3){animation-delay:.2s;} .hiw-mini-chart span:nth-child(4){animation-delay:.3s;}
+    .hiw-mini-chart span:nth-child(5){animation-delay:.4s;} .hiw-mini-chart span:nth-child(6){animation-delay:.3s;}
+    .hiw-mini-chart span:nth-child(7){animation-delay:.2s;} .hiw-mini-chart span:nth-child(8){animation-delay:.1s;}
+
+    .hiw-scan-line {
+      position: relative;
+      height: 22px;
+      margin-top: 0.9rem;
+      border-radius: 6px;
+      background: repeating-linear-gradient(90deg, rgba(96,165,250,0.15) 0 6px, transparent 6px 12px);
+      overflow: hidden;
+      opacity: 0.5;
+      transition: opacity 0.4s ease;
+    }
+    .hiw-scan-line::after {
+      content: "";
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 26px;
+      background: linear-gradient(90deg, transparent, rgba(96,165,250,0.6), transparent);
+      left: -30px;
+    }
+    .hiw-step.is-active .hiw-scan-line { opacity: 1; }
+    .hiw-step.is-active .hiw-scan-line::after { animation: scanSweep 1.6s ease-in-out infinite; }
+    @keyframes scanSweep { 0% { left: -30px; } 100% { left: 100%; } }
+
+    .hiw-alert-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 0.9rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #b45309;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      opacity: 0.45;
+      transform: scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .hiw-step.is-active .hiw-alert-pill { opacity: 1; transform: scale(1); }
+    .hiw-alert-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #f59e0b;
+    }
+
+    @keyframes spinSlow { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hiw-rail-fill, .hiw-rail-orb, .hiw-icon-ring, .hiw-icon-circle, .hiw-step-badge, .hiw-mini-chart span, .hiw-scan-line::after, .hiw-alert-dot {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+    nav a:not(.bg-white)::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -4px;
+      height: 2px;
+      background: rgba(255,255,255,0.8);
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform 0.35s ease;
+    }
+    nav a:not(.bg-white):hover::after {
+      transform: scaleX(1);
+    }
+
+    /* ===== GooeyNav ===== */
+    :root {
+      --linear-ease: linear(0, 0.068, 0.19 2.7%, 0.804 8.1%, 1.037, 1.199 13.2%, 1.245, 1.27 15.8%, 1.274, 1.272 17.4%, 1.249 19.1%, 0.996 28%, 0.949, 0.928 33.3%, 0.926, 0.933 36.8%, 1.001 45.6%, 1.013, 1.019 50.8%, 1.018 54.4%, 1 63.1%, 0.995 68%, 1.001 85%, 1);
+      --color-1: #ffffff;
+      --color-2: #93c5fd;
+      --color-3: #1e4b9b;
+      --color-4: #06b6d4;
+    }
+    /* FIX: nav container must clip its own goo-filter blur layer, or the
+       oversized blurred plate underneath bleeds past the header into the page. */
+    .gooey-nav-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 9999px;
+      padding: 2px;
+    }
+    .gooey-nav-container nav { display: flex; position: relative; transform: translate3d(0, 0, 0.01px); }
+    .gooey-nav-container nav ul { display: flex; gap: 0.5em; list-style: none; padding: 0; margin: 0; position: relative; z-index: 3; color: white; }
+    .gooey-nav-container nav ul li { border-radius: 100vw; position: relative; cursor: pointer; transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 0 0.5px 1.5px transparent; color: white; }
+    .gooey-nav-container nav ul li a { display: inline-block; padding: 0.6em 1em; font-size: 0.875rem; font-weight: 500; }
+    .gooey-nav-container nav ul li:focus-within:has(:focus-visible) { box-shadow: 0 0 0.5px 1.5px white; }
+    .gooey-nav-container nav ul li::after { content: ''; position: absolute; inset: 0; border-radius: 10px; background: white; opacity: 0; transform: scale(0); transition: all 0.3s ease; z-index: -1; }
+    .gooey-nav-container nav ul li.active { color: black; text-shadow: none; }
+    .gooey-nav-container nav ul li.active::after { opacity: 1; transform: scale(1); }
+    .gooey-nav-container .effect { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 1; pointer-events: none; display: grid; place-items: center; z-index: 1; }
+    .gooey-nav-container .effect.text { color: white; transition: color 0.3s ease; font-size: 0.875rem; font-weight: 500; }
+    .gooey-nav-container .effect.text.active { color: black; }
+    .gooey-nav-container .effect.filter { filter: blur(7px) contrast(100) blur(0); mix-blend-mode: lighten; }
+    /* FIX: was inset:-75px with a solid #1e4b9b fill -- a huge navy plate that,
+       once blurred, smeared far outside the pill and (without the clip above)
+       straight through the header. Shrunk + made transparent so the blur only
+       acts on the particle dots / pill, not a giant colored rectangle. */
+    .gooey-nav-container .effect.filter::before { content: ''; position: absolute; inset: -8px; z-index: -2; background: transparent; }
+    .gooey-nav-container .effect.filter::after { content: ''; position: absolute; inset: 0; background: white; transform: scale(0); opacity: 0; z-index: -1; border-radius: 100vw; }
+    .gooey-nav-container .effect.active::after { animation: gooeyPill 0.3s ease both; }
+    @keyframes gooeyPill { to { transform: scale(1); opacity: 1; } }
+    .gooey-particle, .gooey-point { display: block; opacity: 0; width: 20px; height: 20px; border-radius: 100%; transform-origin: center; }
+    .gooey-particle { --time: 5s; position: absolute; top: calc(50% - 8px); left: calc(50% - 8px); animation: gooeyParticle calc(var(--time)) ease 1 -350ms; }
+    .gooey-point { background: var(--color); opacity: 1; animation: gooeyPoint calc(var(--time)) ease 1 -350ms; }
+    @keyframes gooeyParticle {
+      0% { transform: rotate(0deg) translate(calc(var(--start-x)), calc(var(--start-y))); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+      70% { transform: rotate(calc(var(--rotate) * 0.5)) translate(calc(var(--end-x) * 1.2), calc(var(--end-y) * 1.2)); opacity: 1; animation-timing-function: ease; }
+      85% { transform: rotate(calc(var(--rotate) * 0.66)) translate(calc(var(--end-x)), calc(var(--end-y))); opacity: 1; }
+      100% { transform: rotate(calc(var(--rotate) * 1.2)) translate(calc(var(--end-x) * 0.5), calc(var(--end-y) * 0.5)); opacity: 1; }
+    }
+    @keyframes gooeyPoint {
+      0% { transform: scale(0); opacity: 0; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+      25% { transform: scale(calc(var(--scale) * 0.25)); }
+      38% { opacity: 1; }
+      65% { transform: scale(var(--scale)); opacity: 1; animation-timing-function: ease; }
+      85% { transform: scale(var(--scale)); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* ===== BorderGlow ===== */
+    .border-glow-card {
+      --edge-proximity: 0;
+      --cursor-angle: 45deg;
+      --edge-sensitivity: 30;
+      --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+      --border-radius: 28px;
+      --glow-padding: 40px;
+      --cone-spread: 25;
+      position: relative;
+      border-radius: var(--border-radius);
+      isolation: isolate;
+      transform: translate3d(0, 0, 0.01px);
+      display: grid;
+      border: 1px solid rgb(255 255 255 / 15%);
+      background: var(--card-bg, #ffffff);
+      overflow: visible;
+      box-shadow: rgba(0,0,0,0.1) 0px 1px 2px, rgba(0,0,0,0.1) 0px 2px 4px, rgba(0,0,0,0.1) 0px 4px 8px, rgba(0,0,0,0.1) 0px 8px 16px, rgba(0,0,0,0.1) 0px 16px 32px, rgba(0,0,0,0.1) 0px 32px 64px;
+    }
+    .border-glow-card::before, .border-glow-card::after, .border-glow-card > .edge-light {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; transition: opacity 0.25s ease-out; z-index: -1;
+    }
+    .border-glow-card:not(:hover):not(.sweep-active)::before,
+    .border-glow-card:not(:hover):not(.sweep-active)::after,
+    .border-glow-card:not(:hover):not(.sweep-active) > .edge-light {
+      opacity: 0; transition: opacity 0.75s ease-in-out;
+    }
+    .border-glow-card::before {
+      border: 1px solid transparent;
+      background:
+        linear-gradient(var(--card-bg, #ffffff) 0 100%) padding-box,
+        linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+        var(--gradient-one, radial-gradient(at 80% 55%, hsla(217,72%,38%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-two, radial-gradient(at 69% 34%, hsla(213,90%,68%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-three, radial-gradient(at 8% 6%, hsla(213,90%,82%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-four, radial-gradient(at 41% 38%, hsla(213,90%,68%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-five, radial-gradient(at 86% 85%, hsla(213,90%,82%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-six, radial-gradient(at 82% 18%, hsla(217,72%,38%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-seven, radial-gradient(at 51% 4%, hsla(213,90%,68%,1) 0px, transparent 50%)) border-box,
+        var(--gradient-base, linear-gradient(#1e4b9b 0 100%)) border-box;
+      opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+      mask-image: conic-gradient(from var(--cursor-angle) at center, black calc(var(--cone-spread) * 1%), transparent calc((var(--cone-spread) + 15) * 1%), transparent calc((100 - var(--cone-spread) - 15) * 1%), black calc((100 - var(--cone-spread)) * 1%));
+    }
+    .border-glow-card::after {
+      border: 1px solid transparent;
+      background:
+        var(--gradient-one, radial-gradient(at 80% 55%, hsla(217,72%,38%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-two, radial-gradient(at 69% 34%, hsla(213,90%,68%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-three, radial-gradient(at 8% 6%, hsla(213,90%,82%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-four, radial-gradient(at 41% 38%, hsla(213,90%,68%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-five, radial-gradient(at 86% 85%, hsla(213,90%,82%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-six, radial-gradient(at 82% 18%, hsla(217,72%,38%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-seven, radial-gradient(at 51% 4%, hsla(213,90%,68%,1) 0px, transparent 50%)) padding-box,
+        var(--gradient-base, linear-gradient(#1e4b9b 0 100%)) padding-box;
+      mask-image:
+        linear-gradient(to bottom, black, black),
+        radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+        radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+        radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+        radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+        radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+        conic-gradient(from var(--cursor-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+      mask-composite: subtract, add, add, add, add, add;
+      opacity: calc(var(--fill-opacity, 0.5) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+      mix-blend-mode: soft-light;
+    }
+    .border-glow-card > .edge-light {
+      inset: calc(var(--glow-padding) * -1);
+      pointer-events: none;
+      z-index: 1;
+      mask-image: conic-gradient(from var(--cursor-angle) at center, black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+      opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+      mix-blend-mode: plus-lighter;
+    }
+    .border-glow-card > .edge-light::before {
+      content: "";
+      position: absolute;
+      inset: var(--glow-padding);
+      border-radius: inherit;
+      box-shadow:
+        inset 0 0 0 1px var(--glow-color, hsl(213deg 90% 75% / 100%)),
+        inset 0 0 1px 0 var(--glow-color-60, hsl(213deg 90% 75% / 60%)),
+        inset 0 0 3px 0 var(--glow-color-50, hsl(213deg 90% 75% / 50%)),
+        inset 0 0 6px 0 var(--glow-color-40, hsl(213deg 90% 75% / 40%)),
+        inset 0 0 15px 0 var(--glow-color-30, hsl(213deg 90% 75% / 30%)),
+        inset 0 0 25px 2px var(--glow-color-20, hsl(213deg 90% 75% / 20%)),
+        inset 0 0 50px 2px var(--glow-color-10, hsl(213deg 90% 75% / 10%)),
+        0 0 1px 0 var(--glow-color-60, hsl(213deg 90% 75% / 60%)),
+        0 0 3px 0 var(--glow-color-50, hsl(213deg 90% 75% / 50%)),
+        0 0 6px 0 var(--glow-color-40, hsl(213deg 90% 75% / 40%)),
+        0 0 15px 0 var(--glow-color-30, hsl(213deg 90% 75% / 30%)),
+        0 0 25px 2px var(--glow-color-20, hsl(213deg 90% 75% / 20%)),
+        0 0 50px 2px var(--glow-color-10, hsl(213deg 90% 75% / 10%));
+    }
+    .border-glow-inner { display: flex; flex-direction: column; position: relative; overflow: auto; z-index: 1; padding: 2em; }
+    .hiw-borderglow { width: 100%; }
+    .hiw-borderglow .border-glow-inner.hiw-card { padding: 1.75rem; text-align: center; align-items: center; }
+    /* FIX: cards were forced to white text on a #000000 card -- now the card
+       itself is white (via JS backgroundColor below) so text goes back to
+       normal dark-on-white, matching the rest of the site. */
+    .hiw-borderglow .hiw-step-title { color: #111827; }
+    .hiw-borderglow .hiw-step-desc { color: #6b7280; }
+  </style>
+<link data-snapdom="injected-import" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+</head>
+<body class="antialiased">
+<!-- Ribbons cursor-trail effect: fixed, full-viewport, sits above everything,
+     never blocks clicks (pointer-events:none on the layer itself; the ribbons
+     script reads mouse position from window events instead). -->
+<div id="cursorRibbonsBg" style="position:fixed; inset:0; z-index:9998; pointer-events:none;"></div>
+<div id="depthOverlay"></div>
+<div class="w-full bg-white min-h-screen relative overflow-hidden">
+<!-- BEGIN: Header -->
+<header class="bg-brand-blue text-white py-4 px-8 flex justify-between items-center sticky top-0 z-50" style="box-shadow: 0 4px 24px rgba(30,75,155,0.35); overflow: hidden;">
+<div class="flex flex-col">
+<span class="text-2xl font-bold tracking-wide">LITTORA</span>
+<span class="text-xs text-blue-200">Marine Intelligence</span>
+</div>
+<div class="gooey-nav-container hidden md:block" id="gooeyNav">
+<nav>
+<ul id="gooeyNavList">
+<li class="active"><a href="#heroSection">Home</a></li>
+<li><a href="#marineOracleSection">Explore</a></li>
+<li><a href="#oceanHealthSection">Monitor</a></li>
+<li><a href="#insightsSection">Insights</a></li>
+<li><a href="#conservationSection">Conservation</a></li>
+<li><a href="#aboutSection">About</a></li>
+<li><a href="explore-ocean.html">Explore Ocean</a></li>
+<li><a href="marine-life.html">Marine Life</a></li>
+</ul>
+</nav>
+<span class="effect filter" id="gooeyFilter"></span>
+<span class="effect text" id="gooeyText"></span>
+</div>
+<button id="mobileNavToggle" class="md:hidden flex flex-col justify-center items-center gap-1.5 w-10 h-10" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNavDrawer">
+<span class="block w-6 h-0.5 bg-white rounded-full transition-transform duration-300" id="mobileNavBar1"></span>
+<span class="block w-6 h-0.5 bg-white rounded-full transition-opacity duration-300" id="mobileNavBar2"></span>
+<span class="block w-6 h-0.5 bg-white rounded-full transition-transform duration-300" id="mobileNavBar3"></span>
+</button>
+</header>
+<!-- END: Header -->
+
+<!-- Mobile nav drawer + backdrop -->
+<div id="mobileNavBackdrop" class="md:hidden fixed inset-0 bg-black/50 z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<nav id="mobileNavDrawer" class="md:hidden fixed top-0 right-0 h-full w-72 max-w-[80vw] bg-brand-blue text-white z-[70] shadow-2xl transform translate-x-full transition-transform duration-300 ease-out flex flex-col" aria-label="Mobile navigation" aria-hidden="true">
+<div class="flex items-center justify-between px-6 py-5 border-b border-white/15">
+<span class="font-bold tracking-wide">Menu</span>
+<button id="mobileNavClose" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10" aria-label="Close menu">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<ul class="flex flex-col px-6 py-4 gap-1 text-base">
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#heroSection">Home</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#marineOracleSection">Explore</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#oceanHealthSection">Monitor</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#insightsSection">Insights</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#conservationSection">Conservation</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#aboutSection">About</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="explore-ocean.html">Explore Ocean</a></li>
+<li><a class="block py-3 hover:text-cyan-300" href="marine-life.html">Marine Life</a></li>
+</ul>
+</nav>
+
+<main>
+<!-- BEGIN: Hero Section -->
+<section id="heroSection" class="ripple-zone bg-brand-light relative overflow-hidden flex items-center justify-center w-full min-h-[640px] md:min-h-[760px] py-24 px-8">
+<div class="video-bg-wrap parallax-layer" data-speed="0.2">
+<video autoplay="" loop="" muted="" playsinline="">
+<source src="public/videobackground.mp4" type="video/mp4">
+<source src="public/videobackground.mov" type="video/quicktime">
+</video>
+</div>
+<div class="wave-strip"></div>
+<div class="absolute inset-0 z-[3] pointer-events-none" style="background: radial-gradient(ellipse 85% 65% at 50% 40%, rgba(2,12,30,0.42) 0%, rgba(2,12,30,0.22) 45%, rgba(2,12,30,0) 78%);"></div>
+<div class="max-w-5xl relative z-10 pt-4 mx-auto text-center flex flex-col items-center fade-up">
+<h2 class="font-display font-bold leading-[1.05] mb-6 tracking-tight">
+<span class="shimmer-text block text-5xl sm:text-6xl lg:text-7xl xl:text-8xl">Intelligent Insights.</span>
+<span class="font-serif italic font-normal hero-serif-line block text-2xl sm:text-3xl lg:text-4xl xl:text-5xl mt-2">that run <span class="magic-text" id="worldTyper"></span><span id="worldCursor">|</span></span>
+</h2>
+<p class="text-lg text-white mb-8 max-w-md leading-relaxed font-medium hero-subtext">
+            Littora is your window to the ocean.<br>Monitor marine life, assess coastal risks,<br>and protect our blue planet.
+          </p>
+<button class="wave-button bg-brand-blue hover:bg-blue-800 text-white font-medium py-3 px-6 rounded-lg flex items-center shadow-lg transition duration-200 glow-pulse hover:scale-105" onclick="window.lenis ? window.lenis.scrollTo('#oceanHealthSection') : document.getElementById('oceanHealthSection').scrollIntoView({behavior:'smooth'})">
+            Explore the Ocean
+            <svg class="h-5 w-5 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path>
+</svg>
+</button>
+</div>
+<div class="wave-divider text-white">
+<svg preserveAspectRatio="none" viewBox="0 0 1200 48" xmlns="http://www.w3.org/2000/svg"><path d="M0 24 Q150 0 300 24 T600 24 T900 24 T1200 24 V48 H0 Z" fill="currentColor"></path></svg>
+</div>
+<div id="heroGradualBlur"></div>
+</section>
+<!-- END: Hero Section -->
+<!-- BEGIN: Impact Stats Band -->
+<section class="relative overflow-hidden bg-brand-blue py-14 px-8 reveal">
+<div class="caustics-overlay caustics-dark"></div>
+<div class="relative z-10 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center reveal-stagger reveal">
+<div class="reveal-item">
+<div class="text-4xl md:text-5xl font-display font-bold text-white mb-2 live-metric" data-target="2.4" data-decimals="1" data-suffix="M km²">0M km²</div>
+<div class="text-xs uppercase tracking-widest text-blue-200 font-medium">Ocean Monitored</div>
+</div>
+<div class="reveal-item">
+<div class="text-4xl md:text-5xl font-display font-bold text-white mb-2 live-metric" data-target="180" data-decimals="0" data-suffix="+">0+</div>
+<div class="text-xs uppercase tracking-widest text-blue-200 font-medium">Species Tracked</div>
+</div>
+<div class="reveal-item">
+<div class="text-4xl md:text-5xl font-display font-bold text-white mb-2 live-metric" data-target="45" data-decimals="0" data-suffix="">0</div>
+<div class="text-xs uppercase tracking-widest text-blue-200 font-medium">Partner Organizations</div>
+</div>
+<div class="reveal-item">
+<div class="text-4xl md:text-5xl font-display font-bold text-white mb-2">2019</div>
+<div class="text-xs uppercase tracking-widest text-blue-200 font-medium">Monitoring Since</div>
+</div>
+</div>
+</section>
+<!-- END: Impact Stats Band -->
+<!-- BEGIN: Ocean Health Overview -->
+<section class="py-20 px-8 bg-gradient-to-b from-white to-blue-50/50 relative overflow-hidden reveal" id="oceanHealthSection">
+<div id="oceanHealthVantaBg" class="absolute inset-0 z-0 pointer-events-none"></div>
+<div class="max-w-7xl mx-auto relative z-10">
+<div class="flex flex-wrap justify-between items-end gap-4 mb-10">
+<div>
+<h2 class="text-5xl md:text-6xl font-display font-extrabold text-white tracking-tight">Ocean Health Overview</h2>
+<p class="text-sm text-gray-500 mt-2 max-w-md">Live readings streamed from our global sensor network, refreshed continuously.</p>
+</div>
+<a class="text-brand-blue font-medium flex items-center hover:underline text-sm" href="#" data-soon="Full ocean health dashboard">
+            View All
+            <svg class="h-4 w-4 ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path>
+</svg>
+</a>
+</div>
+<div class="grid lg:grid-cols-5 gap-6">
+<div class="lg:col-span-2 relative rounded-3xl overflow-hidden ocean-feed-panel min-h-[380px] lg:min-h-[520px] flex flex-col justify-between p-6" id="reefFeedPanel">
+<canvas id="reefCanvas" class="absolute inset-0 w-full h-full block" style="z-index:0;"></canvas>
+<video id="reefVideoSource" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;" autoplay="" loop="" muted="" playsinline="" preload="auto"></video>
+<div class="caustics-overlay" style="z-index:1; mix-blend-mode:screen; opacity:0.25;"></div>
+<div class="feed-scanlines" style="z-index:1;"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#020c1e]/85 via-[#04102a]/10 to-[#04102a]/0" style="z-index:1;"></div>
+<div class="relative z-10 flex items-center justify-between">
+<span class="text-[10px] font-semibold tracking-widest text-blue-200/80 uppercase bg-white/10 backdrop-blur px-2.5 py-1 rounded-full border border-white/10" id="reefCamLabel">Coral Reef Cam · Palawan</span>
+</div>
+<div class="relative z-10 flex-1"></div>
+<div class="relative z-10">
+<div class="flex items-end justify-between mb-3">
+<div>
+<div class="text-white font-display font-bold text-lg leading-tight" id="reefDepthLabel">Depth 12m · North Reef</div>
+<div class="text-blue-200 text-xs" id="reefBuoyLabel">Streaming from buoy cluster B-114</div>
+</div>
+<div class="feed-waveform">
+<span style="animation-delay:0s;"></span>
+<span style="animation-delay:0.15s;"></span>
+<span style="animation-delay:0.3s;"></span>
+<span style="animation-delay:0.45s;"></span>
+<span style="animation-delay:0.6s;"></span>
+</div>
+</div>
+<div class="h-1 w-full bg-white/15 rounded-full overflow-hidden">
+<div class="feed-progress h-full bg-gradient-to-r from-blue-300 to-white rounded-full" id="reefProgress"></div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-5" id="oceanMetricsGrid">
+<div class="health-card status-info ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"24.6","suffix":"°C","trend":"+ 1.2°C","status":"good"},{"value":"24.8","suffix":"°C","trend":"+ 1.4°C","status":"good"},{"value":"24.3","suffix":"°C","trend":"+ 0.9°C","status":"good"}]'>
+<div class="flex items-center justify-between mb-4">
+<div class="health-icon">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 14.76V4a2 2 0 114 0v10.76a4 4 0 11-4 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+</div>
+<span class="live-dot"></span>
+</div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Ocean Temp.</h3>
+<div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">24.6°C</div>
+<div class="trend-pill metric-trend text-xs text-green-600">
+<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M10 3a1 1 0 01.707.293l5 5a1 1 0 01-1.414 1.414L11 6.414V16a1 1 0 11-2 0V6.414L5.707 9.707a1 1 0 01-1.414-1.414l5-5A1 1 0 0110 3z" fill-rule="evenodd"></path></svg>
+<span class="metric-trend-text">+ 1.2°C</span>
+</div>
+</div>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"72","suffix":"%","trend":"Good","status":"good"},{"value":"74","suffix":"%","trend":"Good","status":"good"},{"value":"70","suffix":"%","trend":"Stable","status":"good"}]'>
+<div class="flex items-center justify-between mb-4">
+<div class="health-icon">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 21c-4-2-7-5.5-7-9.5A5.5 5.5 0 0112 6a5.5 5.5 0 017 5.5c0 4-3 7.5-7 9.5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><path d="M12 21V9" stroke-linecap="round" stroke-width="1.6"></path></svg>
+</div>
+</div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Coral Health</h3>
+<div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">72%</div>
+<div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Good</span></div>
+</div>
+<div class="health-card status-warn ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-yellow-200 bg-gradient-to-b from-white to-yellow-50/60 reveal-item" data-cycle='[{"value":"1.8","suffix":" kg/km²","trend":"Moderate","status":"warn"},{"value":"1.6","suffix":" kg/km²","trend":"Improving","status":"good"},{"value":"2.0","suffix":" kg/km²","trend":"Moderate","status":"warn"}]'>
+<div class="flex items-center justify-between mb-4">
+<div class="health-icon">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0l1 12a2 2 0 002 2h4a2 2 0 002-2l1-12" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+</div>
+</div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Plastic Density</h3>
+<div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">1.8<span class="text-sm font-semibold text-gray-400 ml-1">kg/km²</span></div>
+<div class="trend-pill metric-trend text-xs text-yellow-600"><span class="metric-trend-text">Moderate</span></div>
+</div>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"68","suffix":"%","trend":"Good","status":"good"},{"value":"69","suffix":"%","trend":"Good","status":"good"},{"value":"67","suffix":"%","trend":"Stable","status":"good"}]'>
+<div class="flex items-center justify-between mb-4">
+<div class="health-icon">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><circle cx="15" cy="12" r="1.2" fill="currentColor"></circle></svg>
+</div>
+</div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Marine Biodiversity</h3>
+<div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">68%</div>
+<div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Good</span></div>
+</div>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"85","suffix":"%","trend":"Excellent","status":"good"},{"value":"87","suffix":"%","trend":"Excellent","status":"good"},{"value":"83","suffix":"%","trend":"Very Good","status":"good"}]'>
+<div class="flex items-center justify-between mb-4">
+<div class="health-icon">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3s6 6.5 6 11a6 6 0 11-12 0c0-4.5 6-11 6-11z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+</div>
+</div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Water Quality</h3>
+<div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">85%</div>
+<div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Excellent</span></div>
+</div>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"Low","suffix":"","trend":"Stable","status":"good"},{"value":"Low","suffix":"","trend":"Improving","status":"good"},{"value":"Moderate","suffix":"","trend":"Watch","status":"warn"}]'>
+<div class="flex items-center justify-between mb-4">
+<div class="health-icon">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><path d="M9.5 12l1.8 1.8L14.5 10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+</div>
+</div>
+<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Risk Index</h3>
+<div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">Low</div>
+<div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Stable</span></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Ocean Health Overview -->
+<!-- BEGIN: How It Works -->
+<section class="py-24 px-8 relative overflow-hidden reveal bg-gradient-to-b from-white to-blue-50/60">
+<div class="hiw-bg-glow"></div>
+<!-- FIX: added ferrofluid WebGL background, subtle brand-blue tones, sits at z-0 behind the step cards -->
+<div id="hiwFerrofluidBg" class="absolute inset-0 z-0 pointer-events-none" style="opacity:0.22;"></div>
+<div class="max-w-6xl mx-auto relative z-10">
+<div class="text-center mb-16">
+<span class="inline-block text-[12px] font-bold tracking-[0.25em] text-brand-blue uppercase mb-4">The Pipeline</span>
+<h2 class="text-5xl md:text-6xl font-display font-extrabold text-gray-900 tracking-tight mb-4">How Littora Works</h2>
+<p class="text-base text-gray-500 max-w-md mx-auto">From raw signal to real-world action, in three steps</p>
+</div>
+<div class="hiw-flow relative" id="hiwFlow">
+<div class="hiw-rail hidden md:block">
+<div class="hiw-rail-fill" id="hiwRailFill"></div>
+<span class="hiw-rail-orb" id="hiwOrb"></span>
+</div>
+<div class="grid md:grid-cols-3 gap-8 md:gap-6">
+<div class="hiw-step reveal-item" data-step="0">
+<div class="hiw-icon-orbit">
+<div class="hiw-icon-ring"></div>
+<div class="hiw-icon-circle">
+<svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+</div>
+<span class="hiw-step-badge">01</span>
+</div>
+<div class="border-glow-card hiw-borderglow" data-animated="true">
+<span class="edge-light"></span>
+<div class="border-glow-inner hiw-card">
+<span class="hiw-step-label">STEP 01</span>
+<h3 class="hiw-step-title">Sensors &amp; Satellites</h3>
+<p class="hiw-step-desc">A global mesh of buoys, satellite feeds, and coastal sensors capture temperature, chemistry, and motion data every minute.</p>
+<div class="hiw-mini-chart"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+</div>
+</div>
+<div class="hiw-step reveal-item" data-step="1">
+<div class="hiw-icon-orbit">
+<div class="hiw-icon-ring"></div>
+<div class="hiw-icon-circle">
+<svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+</div>
+<span class="hiw-step-badge">02</span>
+</div>
+<div class="border-glow-card hiw-borderglow" data-animated="true">
+<span class="edge-light"></span>
+<div class="border-glow-inner hiw-card">
+<span class="hiw-step-label">STEP 02</span>
+<h3 class="hiw-step-title">AI Analysis</h3>
+<p class="hiw-step-desc">Our models cross-reference live signals against historical baselines to detect anomalies, risks, and emerging patterns in real time.</p>
+<div class="hiw-scan-line"></div>
+</div>
+</div>
+</div>
+<div class="hiw-step reveal-item" data-step="2">
+<div class="hiw-icon-orbit">
+<div class="hiw-icon-ring"></div>
+<div class="hiw-icon-circle">
+<svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+</div>
+<span class="hiw-step-badge">03</span>
+</div>
+<div class="border-glow-card hiw-borderglow" data-animated="true">
+<span class="edge-light"></span>
+<div class="border-glow-inner hiw-card">
+<span class="hiw-step-label">STEP 03</span>
+<h3 class="hiw-step-title">Actionable Alerts</h3>
+<p class="hiw-step-desc">Researchers, NGOs, and coastal authorities receive prioritized alerts they can act on, from bleaching events to pollution spikes.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: How It Works -->
+<!-- BEGIN: Live Coastal Map -->
+<section class="py-12 px-8 bg-brand-light border-y border-blue-100 relative reveal">
+<div class="wave-divider text-white" style="top:-1px; bottom:auto; transform:scaleY(-1);">
+<svg preserveAspectRatio="none" viewBox="0 0 1200 48" xmlns="http://www.w3.org/2000/svg"><path d="M0 24 Q150 0 300 24 T600 24 T900 24 T1200 24 V48 H0 Z" fill="currentColor"></path></svg>
+</div>
+<div class="mb-6 relative z-10">
+<h2 class="text-xl font-bold text-gray-900 uppercase tracking-wide">Live Coastal Map</h2>
+<p class="text-sm text-gray-600">Real-time condition and risk levels across coastal regions</p>
+</div>
+<div class="relative h-[450px] w-full rounded-2xl overflow-hidden shadow-inner bg-blue-50 border border-blue-100 flex">
+<div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at 50% 50%, #60a5fa 0%, transparent 70%);"></div>
+<svg class="current-flow" preserveAspectRatio="none" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
+<path d="M-50 100 Q 200 60 400 110 T 850 90"></path>
+<path d="M-50 220 Q 220 260 420 210 T 850 240"></path>
+<path d="M-50 340 Q 200 300 400 350 T 850 320"></path>
+</svg>
+<div id="mapLoadingOverlay">
+<div class="bubble-loader">
+<span style="left:10px; width:8px; height:8px; animation-delay:0s;"></span>
+<span style="left:30px; width:12px; height:12px; animation-delay:0.2s;"></span>
+<span style="left:50px; width:7px; height:7px; animation-delay:0.4s;"></span>
+<span style="left:70px; width:10px; height:10px; animation-delay:0.6s;"></span>
+</div>
+<span class="text-xs font-semibold text-blue-400 uppercase tracking-wider">Loading live conditions…</span>
+</div>
+<div class="absolute top-6 left-6 bg-white p-4 rounded-xl shadow-md border border-gray-100 w-48 z-10">
+<h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Risk Levels</h4>
+<ul class="space-y-2 text-sm text-gray-700">
+<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span> Low</li>
+<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellow-400 mr-2"></span> Moderate</li>
+<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-orange-500 mr-2"></span> High</li>
+<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span> Critical</li>
+</ul>
+</div>
+<div class="absolute top-6 right-6 glass-card p-6 rounded-2xl w-80 z-10">
+<h3 class="text-lg font-bold text-gray-900 mb-1">Bluehaven Beach</h3>
+<div class="flex items-center text-sm font-medium text-gray-700 mb-6">
+<span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2"></span>
+              Low Risk
+            </div>
+<div class="space-y-3 text-sm border-b border-gray-200 pb-6 mb-6">
+<div class="flex justify-between">
+<span class="text-gray-500">Water Temp.</span>
+<span class="font-medium text-gray-900">24.2°C</span>
+</div>
+<div class="flex justify-between">
+<span class="text-gray-500">Visibility</span>
+<span class="font-medium text-gray-900">20 m</span>
+</div>
+<div class="flex justify-between">
+<span class="text-gray-500">Waves</span>
+<span class="font-medium text-gray-900">0.6 m</span>
+</div>
+<div class="flex justify-between">
+<span class="text-gray-500">Wind</span>
+<span class="font-medium text-gray-900">8 km/h</span>
+</div>
+</div>
+<button class="w-full py-2 text-brand-blue font-medium text-sm hover:underline">
+              Switch Globe View
+            </button>
+</div>
+<div class="absolute bottom-6 right-6 flex flex-col space-y-2 z-10">
+<button class="w-8 h-8 bg-white rounded-full shadow border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<button class="w-8 h-8 bg-white rounded-full shadow border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+</div>
+<div class="wave-divider text-brand-light" style="bottom:-1px;">
+<svg preserveAspectRatio="none" viewBox="0 0 1200 48" xmlns="http://www.w3.org/2000/svg"><path d="M0 24 Q150 0 300 24 T600 24 T900 24 T1200 24 V48 H0 Z" fill="currentColor"></path></svg>
+</div>
+</section>
+<!-- END: Live Coastal Map -->
+<!-- BEGIN: Live Alerts Feed -->
+<section class="py-16 px-8 relative overflow-hidden reveal" id="liveAlertsSection">
+<div id="liveAlertsParticlesBg" class="absolute inset-0 z-0 pointer-events-none"></div>
+<div class="max-w-4xl mx-auto relative z-10">
+<div class="flex items-center justify-between mb-10 flex-wrap gap-3">
+<div>
+<h2 class="text-xl font-bold text-gray-900 uppercase tracking-wide">Live Alerts Feed</h2>
+<p class="text-sm text-gray-600 mt-1">Real-time events surfaced by the sensor network, moment to moment</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="hidden sm:inline-flex items-center text-xs text-gray-500 font-medium">
+<svg class="h-3.5 w-3.5 mr-1 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 17v-2a4 4 0 014-4h4M9 17H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="live-counter-tick" id="sensorCount">2,481</span>&nbsp;sensors reporting
+          </span>
+</div>
+</div>
+<div class="alerts-panel px-5 pt-6 pb-5 md:px-7 md:pt-7 md:pb-6">
+<div class="relative pl-8" id="alertsTimeline">
+<div class="alert-timeline-line absolute left-[11px] top-2 bottom-2 w-px"></div>
+<div class="relative mb-5 reveal-item" data-severity="orange">
+<span class="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full bg-orange-50 border-2 border-orange-300 flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-orange-500"></span>
+</span>
+<div class="alert-card-premium magic-card border border-orange-100 bg-orange-50/50 rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-2" style="--severity-color:#f97316">
+<div class="alert-shine"></div>
+<div class="relative z-10">
+<span class="text-sm font-semibold text-gray-900">Bleaching alert</span>
+<span class="text-sm text-gray-600"> &mdash; Great Barrier Reef</span>
+</div>
+<span class="relative z-10 alert-timestamp text-xs font-medium text-orange-600 uppercase tracking-wide whitespace-nowrap" data-minutes="120">2h ago</span>
+</div>
+</div>
+<div class="relative mb-5 reveal-item" data-severity="yellow">
+<span class="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full bg-yellow-50 border-2 border-yellow-300 flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+</span>
+<div class="alert-card-premium magic-card border border-yellow-100 bg-yellow-50/50 rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-2" style="--severity-color:#eab308">
+<div class="alert-shine"></div>
+<div class="relative z-10">
+<span class="text-sm font-semibold text-gray-900">Plastic hotspot detected</span>
+<span class="text-sm text-gray-600"> &mdash; Bay of Bengal</span>
+</div>
+<span class="relative z-10 alert-timestamp text-xs font-medium text-yellow-600 uppercase tracking-wide whitespace-nowrap" data-minutes="360">6h ago</span>
+</div>
+</div>
+<div class="relative mb-5 reveal-item" data-severity="blue">
+<span class="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full bg-blue-50 border-2 border-blue-300 flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-brand-blue"></span>
+</span>
+<div class="alert-card-premium magic-card border border-blue-100 bg-brand-light rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-2" style="--severity-color:#1e4b9b">
+<div class="alert-shine"></div>
+<div class="relative z-10">
+<span class="text-sm font-semibold text-gray-900">Sensor buoy deployed</span>
+<span class="text-sm text-gray-600"> &mdash; Coral Triangle, Indonesia</span>
+</div>
+<span class="relative z-10 alert-timestamp text-xs font-medium text-brand-blue uppercase tracking-wide whitespace-nowrap" data-minutes="660">11h ago</span>
+</div>
+</div>
+<div class="relative mb-5 reveal-item" data-severity="green">
+<span class="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full bg-green-50 border-2 border-green-300 flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+</span>
+<div class="alert-card-premium magic-card border border-green-100 bg-green-50/50 rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-2" style="--severity-color:#22c55e">
+<div class="alert-shine"></div>
+<div class="relative z-10">
+<span class="text-sm font-semibold text-gray-900">Water quality improved</span>
+<span class="text-sm text-gray-600"> &mdash; Monterey Bay</span>
+</div>
+<span class="relative z-10 alert-timestamp text-xs font-medium text-green-600 uppercase tracking-wide whitespace-nowrap" data-minutes="1440">1d ago</span>
+</div>
+</div>
+<div class="relative reveal-item" data-severity="orange">
+<span class="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full bg-orange-50 border-2 border-orange-300 flex items-center justify-center">
+<span class="w-2 h-2 rounded-full bg-orange-500"></span>
+</span>
+<div class="alert-card-premium magic-card border border-orange-100 bg-orange-50/50 rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-2" style="--severity-color:#f97316">
+<div class="alert-shine"></div>
+<div class="relative z-10">
+<span class="text-sm font-semibold text-gray-900">Migration pattern shift</span>
+<span class="text-sm text-gray-600"> &mdash; Humpback whales, Baja California</span>
+</div>
+<span class="relative z-10 alert-timestamp text-xs font-medium text-orange-600 uppercase tracking-wide whitespace-nowrap" data-minutes="1440">1d ago</span>
+</div>
+</div>
+</div>
+</div>
+<div class="text-center mt-8">
+<a class="text-brand-blue font-medium text-sm hover:underline inline-flex items-center" href="#" data-soon="Full alert history">
+              View Full Alert History
+              <svg class="h-4 w-4 ml-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path></svg>
+</a>
+</div>
+</div>
+</section>
+<!-- END: Live Alerts Feed -->
+<!-- BEGIN: Featured Insight -->
+<section class="py-16 px-8 relative overflow-hidden reveal" id="insightsSection">
+<div class="max-w-6xl mx-auto relative z-10">
+<div class="mb-8">
+<span class="text-xs font-bold text-brand-blue uppercase tracking-widest">Featured Insight</span>
+</div>
+<div class="magic-card ripple-zone relative rounded-3xl overflow-hidden border border-blue-100 shadow-lg grid md:grid-cols-2 min-h-[380px]">
+<div class="relative overflow-hidden bg-brand-blue">
+<div class="video-bg-wrap">
+<video autoplay="" loop="" muted="" playsinline="">
+<source src="public/coralbleaching.mp4" type="video/mp4">
+</video>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent z-[1]"></div>
+<div class="caustics-overlay caustics-dark"></div>
+<div class="absolute bottom-6 left-6 z-10">
+<span class="inline-block bg-white/15 backdrop-blur-sm border border-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-full uppercase tracking-wide">Deep Dive · July 2026</span>
+</div>
+</div>
+<div class="p-10 md:p-12 flex flex-col justify-center">
+<h3 class="font-display font-bold text-2xl md:text-3xl text-gray-900 mb-4 leading-snug">This Month's Deep Dive: Coral Bleaching in the Pacific</h3>
+<p class="text-sm text-gray-600 leading-relaxed mb-6 max-w-md">
+                New satellite thermal data reveals a sharp rise in bleaching-risk zones across the Central Pacific. We break down what's driving it, which reefs are most exposed, and what recovery could look like over the next bloom cycle.
+              </p>
+<div class="flex items-center gap-6 text-xs text-gray-500 mb-8">
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-orange-400 mr-2"></span>High Risk Zones: 12</span>
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-400 mr-2"></span>8 min read</span>
+</div>
+<a class="wave-button inline-flex items-center self-start bg-brand-blue hover:bg-blue-800 text-white font-medium text-sm px-6 py-3 rounded-full shadow-md transition duration-200 hover:scale-105" href="#" data-soon="Full coral bleaching report">
+                Read the Full Report
+                <svg class="h-4 w-4 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</a>
+</div>
+</div>
+</section>
+<!-- END: Featured Insight -->
+<!-- BEGIN: Testimonials & Partners -->
+<section class="py-16 px-8 bg-brand-light reveal" id="aboutSection">
+<div class="max-w-6xl mx-auto">
+<div class="text-center mb-12">
+<h2 class="text-xl font-bold text-gray-900 uppercase tracking-wide mb-2">Trusted by Researchers Worldwide</h2>
+<p class="text-sm text-gray-600 max-w-md mx-auto">Marine biologists, NGOs, and coastal agencies rely on Littora every day</p>
+</div>
+<div class="grid md:grid-cols-3 gap-6 mb-14 reveal-stagger reveal">
+<div class="magic-card bg-white border border-blue-100 rounded-2xl p-7 shadow-sm reveal-item flex flex-col">
+<svg class="h-6 w-6 text-blue-200 mb-4" fill="currentColor" viewBox="0 0 32 32"><path d="M9.352 22.4c-1.6 0-2.912-.56-3.936-1.68C4.392 19.6 3.88 18.16 3.88 16.36c0-2.24.72-4.4 2.16-6.48C7.48 7.8 9.4 6.04 11.8 4.6l2.28 3.24c-1.68 1.08-3 2.24-3.96 3.48-.96 1.24-1.52 2.48-1.68 3.72.48-.24 1.04-.36 1.68-.36 1.36 0 2.48.48 3.36 1.44.88.92 1.32 2.12 1.32 3.6 0 1.48-.48 2.68-1.44 3.6-.92.88-2.08 1.32-3.48 1.32h.44zm14.16 0c-1.6 0-2.912-.56-3.936-1.68-1.024-1.12-1.536-2.56-1.536-4.36 0-2.24.72-4.4 2.16-6.48 1.44-2.08 3.36-3.84 5.76-5.28l2.28 3.24c-1.68 1.08-3 2.24-3.96 3.48-.96 1.24-1.52 2.48-1.68 3.72.48-.24 1.04-.36 1.68-.36 1.36 0 2.48.48 3.36 1.44.88.92 1.32 2.12 1.32 3.6 0 1.48-.48 2.68-1.44 3.6-.92.88-2.08 1.32-3.48 1.32h.44z"></path></svg>
+<p class="text-sm text-gray-700 leading-relaxed mb-6 flex-1">Littora's alerts caught a thermal spike three days before our own instruments flagged it. It's changed how fast our response team can move.</p>
+<div class="flex items-center gap-3 mt-auto">
+<div class="w-10 h-10 rounded-full bg-brand-blue text-white flex items-center justify-center text-xs font-bold font-display">RM</div>
+<div>
+<div class="text-sm font-semibold text-gray-900">Dr. Rina Mercado</div>
+<div class="text-xs text-gray-500">Marine Biologist, Coral Reef Alliance</div>
+</div>
+</div>
+</div>
+<div class="magic-card bg-white border border-blue-100 rounded-2xl p-7 shadow-sm reveal-item flex flex-col">
+<svg class="h-6 w-6 text-blue-200 mb-4" fill="currentColor" viewBox="0 0 32 32"><path d="M9.352 22.4c-1.6 0-2.912-.56-3.936-1.68C4.392 19.6 3.88 18.16 3.88 16.36c0-2.24.72-4.4 2.16-6.48C7.48 7.8 9.4 6.04 11.8 4.6l2.28 3.24c-1.68 1.08-3 2.24-3.96 3.48-.96 1.24-1.52 2.48-1.68 3.72.48-.24 1.04-.36 1.68-.36 1.36 0 2.48.48 3.36 1.44.88.92 1.32 2.12 1.32 3.6 0 1.48-.48 2.68-1.44 3.6-.92.88-2.08 1.32-3.48 1.32h.44zm14.16 0c-1.6 0-2.912-.56-3.936-1.68-1.024-1.12-1.536-2.56-1.536-4.36 0-2.24.72-4.4 2.16-6.48 1.44-2.08 3.36-3.84 5.76-5.28l2.28 3.24c-1.68 1.08-3 2.24-3.96 3.48-.96 1.24-1.52 2.48-1.68 3.72.48-.24 1.04-.36 1.68-.36 1.36 0 2.48.48 3.36 1.44.88.92 1.32 2.12 1.32 3.6 0 1.48-.48 2.68-1.44 3.6-.92.88-2.08 1.32-3.48 1.32h.44z"></path></svg>
+<p class="text-sm text-gray-700 leading-relaxed mb-6 flex-1">We plugged Littora's feed straight into our field reports. What used to take our analysts a full day now takes an hour.</p>
+<div class="flex items-center gap-3 mt-auto">
+<div class="w-10 h-10 rounded-full bg-brand-blue text-white flex items-center justify-center text-xs font-bold font-display">JT</div>
+<div>
+<div class="text-sm font-semibold text-gray-900">Jonas Talavera</div>
+<div class="text-xs text-gray-500">Program Lead, Ocean Conservancy Network</div>
+</div>
+</div>
+</div>
+<div class="magic-card bg-white border border-blue-100 rounded-2xl p-7 shadow-sm reveal-item flex flex-col">
+<svg class="h-6 w-6 text-blue-200 mb-4" fill="currentColor" viewBox="0 0 32 32"><path d="M9.352 22.4c-1.6 0-2.912-.56-3.936-1.68C4.392 19.6 3.88 18.16 3.88 16.36c0-2.24.72-4.4 2.16-6.48C7.48 7.8 9.4 6.04 11.8 4.6l2.28 3.24c-1.68 1.08-3 2.24-3.96 3.48-.96 1.24-1.52 2.48-1.68 3.72.48-.24 1.04-.36 1.68-.36 1.36 0 2.48.48 3.36 1.44.88.92 1.32 2.12 1.32 3.6 0 1.48-.48 2.68-1.44 3.6-.92.88-2.08 1.32-3.48 1.32h.44zm14.16 0c-1.6 0-2.912-.56-3.936-1.68-1.024-1.12-1.536-2.56-1.536-4.36 0-2.24.72-4.4 2.16-6.48 1.44-2.08 3.36-3.84 5.76-5.28l2.28 3.24c-1.68 1.08-3 2.24-3.96 3.48-.96 1.24-1.52 2.48-1.68 3.72.48-.24 1.04-.36 1.68-.36 1.36 0 2.48.48 3.36 1.44.88.92 1.32 2.12 1.32 3.6 0 1.48-.48 2.68-1.44 3.6-.92.88-2.08 1.32-3.48 1.32h.44z"></path></svg>
+<p class="text-sm text-gray-700 leading-relaxed mb-6 flex-1">The species tracking layer is the closest thing we've found to a shared source of truth across three different research vessels.</p>
+<div class="flex items-center gap-3 mt-auto">
+<div class="w-10 h-10 rounded-full bg-brand-blue text-white flex items-center justify-center text-xs font-bold font-display">AK</div>
+<div>
+<div class="text-sm font-semibold text-gray-900">Prof. Amara Kessler</div>
+<div class="text-xs text-gray-500">Dept. of Oceanography, Pacific Coast University</div>
+</div>
+</div>
+</div>
+</div>
+<div class="border-t border-blue-100 pt-10">
+<div class="text-center text-xs font-semibold text-gray-400 uppercase tracking-widest mb-6">In partnership with 45+ organizations</div>
+<div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 grayscale opacity-60 reveal-stagger reveal">
+<span class="reveal-item font-display font-bold text-lg text-gray-500">Blue Horizon Institute</span>
+<span class="reveal-item font-display font-bold text-lg text-gray-500">Coral Reef Alliance</span>
+<span class="reveal-item font-display font-bold text-lg text-gray-500">Pacific Coast University</span>
+<span class="reveal-item font-display font-bold text-lg text-gray-500">Ocean Conservancy Network</span>
+<span class="reveal-item font-display font-bold text-lg text-gray-500">Tidewatch NGO</span>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Testimonials & Partners -->
+<!-- BEGIN: Explore Marine Life + Action Hubs (merged, single shared background) -->
+<section class="py-12 px-8 relative overflow-hidden reveal" id="marineOracleSection">
+<div id="marineOracleGrainientBg" class="absolute inset-0 z-0 pointer-events-none"></div>
+<div class="mb-6 relative z-10">
+<h2 class="text-4xl md:text-5xl font-display font-extrabold text-white uppercase tracking-wide" style="text-shadow: 0 2px 24px rgba(6,182,212,0.4), 0 1px 2px rgba(0,0,0,0.5);">Explore Marine Life</h2>
+<p class="text-base text-white/80 mt-2">Discover amazing species and their habitats</p>
+</div>
+<div class="relative z-10">
+<div class="ripple-zone grid grid-cols-5 gap-4 pb-4 reveal-stagger reveal">
+<!-- FIX: each species card was missing its <video> element -- only the
+     gradient overlay existed, so nothing ever played. Added the video +
+     species-video class (see CSS) under each overlay. Point src at your
+     real clip files. -->
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/turtle.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="relative z-10 flex justify-between items-center w-full">
+<span class="font-semibold text-white text-sm drop-shadow">Sea Turtle</span>
+<svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</div>
+</div>
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/dolphin.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="relative z-10 flex justify-between items-center w-full">
+<span class="font-semibold text-white text-sm drop-shadow">Dolphin</span>
+<svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</div>
+</div>
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/mantaray.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="relative z-10 flex justify-between items-center w-full">
+<span class="font-semibold text-white text-sm drop-shadow">Manta Ray</span>
+<svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</div>
+</div>
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/jellyfish.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="relative z-10 flex justify-between items-center w-full">
+<span class="font-semibold text-white text-sm drop-shadow">Jellyfish</span>
+<svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</div>
+</div>
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/clownfish.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="relative z-10 flex justify-between items-center w-full">
+<span class="font-semibold text-white text-sm drop-shadow">Clownfish</span>
+<svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</div>
+</div>
+</div>
+</div>
+<div class="grid md:grid-cols-2 gap-8 reveal-stagger reveal mt-8 relative z-10">
+<!-- FIX: same missing-video bug on both action hub cards -->
+<div class="action-hub-card magic-card relative border border-white/30 rounded-3xl p-10 shadow-md flex flex-col justify-between h-72 overflow-hidden reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/pollutionwatch.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="biolume-field">
+<div class="biolume-dot" style="left:20%; top:30%; width:4px; height:4px; animation-duration:3.2s; animation-delay:0s;"></div>
+<div class="biolume-dot" style="left:75%; top:20%; width:3px; height:3px; animation-duration:2.6s; animation-delay:0.8s;"></div>
+<div class="biolume-dot" style="left:50%; top:65%; width:5px; height:5px; animation-duration:3.8s; animation-delay:1.4s;"></div>
+<div class="biolume-dot" style="left:88%; top:70%; width:3px; height:3px; animation-duration:2.9s; animation-delay:0.4s;"></div>
+<div class="biolume-dot" style="left:10%; top:75%; width:4px; height:4px; animation-duration:3.4s; animation-delay:2s;"></div>
+</div>
+<div class="relative z-10">
+<span class="block h-[3px] w-10 bg-gradient-to-r from-cyan-300 to-blue-500 rounded-full mb-3"></span>
+<h3 class="font-display text-3xl md:text-[2.15rem] font-extrabold text-white uppercase mb-3 tracking-[0.03em] leading-[1.05]" style="text-shadow: 0 2px 20px rgba(6,182,212,0.45), 0 1px 2px rgba(0,0,0,0.6);">Pollution Watch</h3>
+<p class="text-base text-gray-100 max-w-sm">Track pollution hotspots and take action</p>
+</div>
+<button class="relative z-10 border border-white/40 backdrop-blur-sm bg-white/10 text-white font-medium text-sm self-start px-5 py-2.5 rounded-full hover:bg-white/20 mt-4 w-fit" onclick="window.lenis ? window.lenis.scrollTo('#liveAlertsSection') : document.getElementById('liveAlertsSection').scrollIntoView({behavior:'smooth'})">
+            Explore Hotspots
+          </button>
+</div>
+<div class="action-hub-card magic-card relative border border-white/30 rounded-3xl p-10 shadow-md flex flex-col justify-between h-72 overflow-hidden reveal-item">
+<video class="species-video" autoplay="" loop="" muted="" playsinline="">
+<source src="public/oceanoracle.mp4" type="video/mp4">
+</video>
+<div class="card-video-overlay"></div>
+<div class="biolume-field">
+<div class="biolume-dot" style="left:25%; top:25%; width:4px; height:4px; animation-duration:3.1s; animation-delay:0.3s;"></div>
+<div class="biolume-dot" style="left:70%; top:35%; width:3px; height:3px; animation-duration:2.7s; animation-delay:1.1s;"></div>
+<div class="biolume-dot" style="left:45%; top:70%; width:5px; height:5px; animation-duration:3.6s; animation-delay:0.6s;"></div>
+<div class="biolume-dot" style="left:90%; top:60%; width:3px; height:3px; animation-duration:3s; animation-delay:1.8s;"></div>
+<div class="biolume-dot" style="left:8%; top:65%; width:4px; height:4px; animation-duration:3.3s; animation-delay:2.2s;"></div>
+</div>
+<div class="relative z-10">
+<span class="block h-[3px] w-10 bg-gradient-to-r from-purple-300 to-indigo-500 rounded-full mb-3"></span>
+<h3 class="font-display text-3xl md:text-[2.15rem] font-extrabold text-white uppercase mb-3 tracking-[0.03em] leading-[1.05]" style="text-shadow: 0 2px 20px rgba(124,58,237,0.45), 0 1px 2px rgba(0,0,0,0.6);">AI Ocean Oracle</h3>
+<p class="text-base text-gray-100 max-w-sm">AI-powered insights for a better tomorrow</p>
+</div>
+<button class="relative z-10 border border-white/40 backdrop-blur-sm bg-white/10 text-white font-medium text-sm self-start px-5 py-2.5 rounded-full hover:bg-white/20 mt-4 w-fit" data-soon="The AI Ocean Oracle chat">
+            Ask the Oracle
+          </button>
+</div>
+</div>
+</section>
+<!-- END: Explore Marine Life + Action Hubs -->
+<!-- BEGIN: Call to Action Bar -->
+<section class="relative overflow-hidden bg-brand-blue py-16 px-8 reveal" id="conservationSection">
+<div id="ctaRibbonsBg" class="absolute inset-0 z-0 pointer-events-none"></div>
+<div class="caustics-overlay caustics-dark"></div>
+<div class="relative z-10 max-w-2xl mx-auto text-center">
+<h2 class="font-display font-bold text-3xl md:text-4xl text-white mb-4 leading-tight">Join the Tide</h2>
+<p class="text-sm md:text-base text-blue-100 mb-8 max-w-lg mx-auto">
+          Get monthly ocean intelligence briefings, new deep-dive reports, and early access to alerts &mdash; straight to your inbox.
+        </p>
+<form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" id="newsletterForm" novalidate="">
+<label class="sr-only" for="newsletterEmail">Email address</label>
+<input class="flex-1 px-5 py-3 rounded-full text-sm text-gray-900 placeholder-gray-400 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40" id="newsletterEmail" placeholder="you@organization.org" type="email" required=""/>
+<button class="wave-button bg-white text-brand-blue hover:bg-blue-50 font-semibold text-sm px-6 py-3 rounded-full shadow-md transition duration-200 hover:scale-105 whitespace-nowrap" type="submit">
+            Get Involved
+          </button>
+</form>
+<p class="text-xs text-blue-200 mt-4" id="newsletterStatus" role="status" aria-live="polite">No spam. Unsubscribe anytime. ~2 emails a month.</p>
+</div>
+</section>
+<!-- END: Call to Action Bar -->
+<!-- BEGIN: FAQ -->
+<section class="py-16 px-8 relative overflow-hidden reveal">
+<div class="site-bg-video-wrap">
+<video autoplay="" loop="" muted="" playsinline="">
+<source src="public/overallbackgroundvideo.mp4" type="video/mp4">
+</video>
+</div>
+<div class="max-w-3xl mx-auto relative z-10">
+<div class="text-center mb-10 bg-white/85 backdrop-blur-md rounded-2xl px-8 py-6 shadow-sm">
+<h2 class="font-display font-bold text-3xl md:text-4xl text-gray-900 tracking-tight mb-3">Frequently Asked Questions</h2>
+<p class="text-sm text-gray-600 max-w-md mx-auto">Straight answers on data, accuracy, and how Littora works under the hood</p>
+</div>
+<div class="space-y-3 reveal-stagger reveal">
+<details class="faq-item magic-card group reveal-item bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl px-6 py-1 open:pb-4" open="">
+<summary class="faq-summary flex items-center justify-between py-4 cursor-pointer select-none text-sm font-semibold text-gray-900">
+              Where does Littora's data come from?
+              <svg class="faq-chevron h-4 w-4 text-brand-blue flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</summary>
+<p class="text-sm text-gray-600 leading-relaxed">
+              We combine a global mesh of coastal sensor buoys, partner satellite feeds, and public oceanographic datasets from research institutions, then cross-validate every reading before it reaches the dashboard.
+            </p>
+</details>
+<details class="faq-item magic-card group reveal-item bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl px-6 py-1">
+<summary class="faq-summary flex items-center justify-between py-4 cursor-pointer select-none text-sm font-semibold text-gray-900">
+              How often is the data updated?
+              <svg class="faq-chevron h-4 w-4 text-brand-blue flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</summary>
+<p class="text-sm text-gray-600 leading-relaxed">
+              Sensor and satellite readings refresh every 60 seconds on average. AI-detected alerts, like bleaching or pollution events, are pushed to partners within minutes of being flagged.
+            </p>
+</details>
+<details class="faq-item magic-card group reveal-item bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl px-6 py-1">
+<summary class="faq-summary flex items-center justify-between py-4 cursor-pointer select-none text-sm font-semibold text-gray-900">
+              How accurate are the AI-generated alerts?
+              <svg class="faq-chevron h-4 w-4 text-brand-blue flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</summary>
+<p class="text-sm text-gray-600 leading-relaxed">
+              Our models are trained against a decade of validated historical baselines and are continuously re-checked by partner researchers, keeping false-positive rates low without slowing down real-time detection.
+            </p>
+</details>
+<details class="faq-item magic-card group reveal-item bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl px-6 py-1">
+<summary class="faq-summary flex items-center justify-between py-4 cursor-pointer select-none text-sm font-semibold text-gray-900">
+              Can my organization get access to the raw data?
+              <svg class="faq-chevron h-4 w-4 text-brand-blue flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</summary>
+<p class="text-sm text-gray-600 leading-relaxed">
+              Yes. Research institutions, NGOs, and coastal authorities can request partner-tier API access, which includes raw sensor exports, historical archives, and custom alert thresholds.
+            </p>
+</details>
+<details class="faq-item magic-card group reveal-item bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl px-6 py-1">
+<summary class="faq-summary flex items-center justify-between py-4 cursor-pointer select-none text-sm font-semibold text-gray-900">
+              Is Littora free to use?
+              <svg class="faq-chevron h-4 w-4 text-brand-blue flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</summary>
+<p class="text-sm text-gray-600 leading-relaxed">
+              The public dashboard, live map, and alerts feed are free for anyone to explore. Partner-tier data access and custom integrations are available for research and conservation organizations.
+            </p>
+</details>
+</div>
+</div>
+</section>
+<!-- END: FAQ -->
+</main>
+<!-- BEGIN: Footer -->
+<footer class="bg-brand-blue text-white py-12 px-8">
+<div class="flex flex-col md:flex-row justify-between">
+<div class="mb-8 md:mb-0">
+<div class="flex flex-col mb-12">
+<span class="text-2xl font-bold tracking-wide">LITTORA</span>
+<span class="text-xs text-blue-200">Marine Intelligence</span>
+</div>
+<p class="text-xs text-blue-300">© 2025 Littora. All rights reserved.</p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+<div>
+<h4 class="font-bold mb-4 uppercase text-xs tracking-wider">Platform</h4>
+<ul class="space-y-2 text-blue-200">
+<li class=""><a class="hover:text-white" href="#heroSection">Home</a></li>
+<li class=""><a class="hover:text-white" href="#marineOracleSection">Explore</a></li>
+<li class=""><a class="hover:text-white" href="#oceanHealthSection">Monitor</a></li>
+<li class=""><a class="hover:text-white" href="#insightsSection">Insights</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold mb-4 uppercase text-xs tracking-wider">Resources</h4>
+<ul class="space-y-2 text-blue-200">
+<li class=""><a class="hover:text-white" href="#conservationSection">Conservation</a></li>
+<li class=""><a class="hover:text-white" href="#" data-soon="Blog">Blog</a></li>
+<li class=""><a class="hover:text-white" href="#" data-soon="Documentation">Documentation</a></li>
+<li class=""><a class="hover:text-white" href="#" data-soon="Help Center">Help Center</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold mb-4 uppercase text-xs tracking-wider">Community</h4>
+<ul class="space-y-2 text-blue-200">
+<li class=""><a class="hover:text-white" href="#" data-soon="Events">Events</a></li>
+<li class=""><a class="hover:text-white" href="#" data-soon="Partners">Partners</a></li>
+<li class=""><a class="hover:text-white" href="#" data-soon="Support Us">Support Us</a></li>
+<li class=""><a class="hover:text-white" href="mailto:hello@littora.example">Contact Us</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold mb-4 uppercase text-xs tracking-wider">Connect</h4>
+</div>
+</div>
+</div>
+</footer>
+<!-- END: Footer -->
+</div>
+
+
+<script>
+    function $(id) { return document.getElementById(id); }
+
+    const worldWords = [
+      'seven seas deep',
+      'on live satellite data',
+      'day and night, unblinking',
+      'across every tide',
+      'without missing a current',
+      'on real ocean signals',
+      'deeper than sonar can see'
+    ];
+    let wIdx = 0, wChar = 0, wDel = false;
+    const worldEl = $('worldTyper'), cursorEl = $('worldCursor');
+
+    function tickWorld() {
+      const word = worldWords[wIdx];
+      if (!wDel) {
+        wChar++;
+        worldEl.textContent = word.slice(0, wChar);
+        if (wChar === word.length) {
+          wDel = true;
+          setTimeout(tickWorld, 1800);
+          return;
+        }
+        setTimeout(tickWorld, 65);
+      } else {
+        wChar--;
+        worldEl.textContent = word.slice(0, wChar);
+        if (wChar === 0) {
+          wDel = false;
+          wIdx = (wIdx + 1) % worldWords.length;
+          setTimeout(tickWorld, 200);
+          return;
+        }
+        setTimeout(tickWorld, 30);
+      }
+    }
+    if (worldEl) tickWorld();
+
+    let cv = true;
+    if (cursorEl) {
+      setInterval(() => {
+        cursorEl.style.opacity = (cv = !cv) ? '1' : '0';
+      }, 530);
+    }
+
+    const revealEls = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('reveal-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+      revealEls.forEach((el) => io.observe(el));
+    } else {
+      revealEls.forEach((el) => el.classList.add('reveal-visible'));
+    }
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    (function () {
+      const metrics = document.querySelectorAll('.live-metric');
+      if (!metrics.length) return;
+      function animateMetric(el) {
+        const target = parseFloat(el.dataset.target || '0');
+        const decimals = parseInt(el.dataset.decimals || '0', 10);
+        const suffix = el.dataset.suffix || '';
+        if (reduceMotion) {
+          el.textContent = target.toFixed(decimals) + suffix;
+          return;
+        }
+        const duration = 1400;
+        const start = performance.now();
+        function frame(now) {
+          const p = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - p, 3);
+          const val = target * eased;
+          el.textContent = val.toFixed(decimals) + suffix;
+          if (p < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }
+      if ('IntersectionObserver' in window) {
+        const mio = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              animateMetric(entry.target);
+              mio.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.4 });
+        metrics.forEach((el) => mio.observe(el));
+      } else {
+        metrics.forEach(animateMetric);
+      }
+    })();
+
+    (function () {
+      const depthOverlay = $('depthOverlay');
+      const parallaxLayers = document.querySelectorAll('.parallax-layer');
+      if (reduceMotion) return;
+      let ticking = false;
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          const y = window.scrollY;
+          const docH = document.documentElement.scrollHeight - window.innerHeight;
+          const progress = docH > 0 ? Math.min(1, y / (docH * 0.6)) : 0;
+          if (depthOverlay) depthOverlay.style.opacity = (progress * 0.85).toFixed(3);
+          parallaxLayers.forEach((layer) => {
+            const speed = parseFloat(layer.dataset.speed || '0.3');
+            const rect = layer.closest('section')?.getBoundingClientRect();
+            const offset = rect ? rect.top * speed : 0;
+            layer.style.transform = `translateY(${offset}px)`;
+          });
+          ticking = false;
+        });
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
+    (function () {
+      if (reduceMotion) return;
+      document.querySelectorAll('.sonar-zone').forEach((card) => {
+        card.addEventListener('mousemove', (e) => {
+          if (card._sonarBusy) return;
+          card._sonarBusy = true;
+          const rect = card.getBoundingClientRect();
+          const ring = document.createElement('div');
+          ring.className = 'sonar-ring';
+          ring.style.left = (e.clientX - rect.left) + 'px';
+          ring.style.top = (e.clientY - rect.top) + 'px';
+          card.appendChild(ring);
+          setTimeout(() => ring.remove(), 1150);
+          setTimeout(() => { card._sonarBusy = false; }, 500);
+        });
+      });
+    })();
+
+    (function () {
+      const overlay = $('mapLoadingOverlay');
+      if (!overlay) return;
+      setTimeout(() => {
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 650);
+      }, 1600);
+    })();
+
+    (function () {
+      const cards = document.querySelectorAll('.ocean-cycle-card');
+      if (!cards.length) return;
+      const statusColors = {
+        good: { text: 'text-green-600', dot: '#22c55e' },
+        warn: { text: 'text-yellow-600', dot: '#f59e0b' },
+        bad:  { text: 'text-red-600', dot: '#ef4444' }
+      };
+      cards.forEach((card, i) => {
+        let data;
+        try { data = JSON.parse(card.dataset.cycle || '[]'); } catch (e) { data = []; }
+        if (!data.length) return;
+        let idx = 0;
+        const valueEl = card.querySelector('.metric-value');
+        const trendEl = card.querySelector('.metric-trend');
+        const trendTextEl = card.querySelector('.metric-trend-text');
+        const dotEl = card.querySelector('.live-dot');
+
+        function applyFrame() {
+          const frame = data[idx];
+          if (valueEl) {
+            const suffix = (frame.suffix || '').trim();
+            valueEl.innerHTML = frame.value + (suffix ? '<span class="text-sm font-semibold text-gray-400 ml-1">' + suffix + '</span>' : '');
+          }
+          Object.keys(statusColors).forEach((k) => trendEl && trendEl.classList.remove(statusColors[k].text));
+          const palette = statusColors[frame.status] || statusColors.good;
+          if (trendEl) trendEl.classList.add(palette.text);
+          if (trendTextEl) trendTextEl.textContent = frame.trend;
+          if (dotEl) dotEl.style.background = palette.dot;
+        }
+
+        applyFrame();
+
+        setInterval(() => {
+          card.classList.add('is-cycling');
+          setTimeout(() => {
+            idx = (idx + 1) % data.length;
+            applyFrame();
+            card.classList.remove('is-cycling');
+          }, 320);
+        }, 2000 + i * 180);
+      });
+    })();
+
+    (function () {
+      const flow = $('hiwFlow');
+      if (!flow) return;
+      const steps = Array.from(flow.querySelectorAll('.hiw-step'));
+      const railFill = $('hiwRailFill');
+      const orb = $('hiwOrb');
+      if (!steps.length) return;
+      let active = 0;
+      const positions = ['16.6%', '50%', '83.4%'];
+      const fills = ['16.6%', '50%', '83.4%'];
+
+      function setActive(idxTarget) {
+        steps.forEach((s, i) => s.classList.toggle('is-active', i === idxTarget));
+        if (railFill) railFill.style.width = fills[idxTarget];
+        if (orb) orb.style.left = positions[idxTarget];
+      }
+
+      setActive(0);
+      let autoTimer = setInterval(() => {
+        active = (active + 1) % steps.length;
+        setActive(active);
+      }, 3200);
+
+      flow.addEventListener('mouseenter', () => clearInterval(autoTimer));
+      flow.addEventListener('mouseleave', () => {
+        autoTimer = setInterval(() => {
+          active = (active + 1) % steps.length;
+          setActive(active);
+        }, 3200);
+      });
+
+      steps.forEach((s, i) => {
+        s.addEventListener('mouseenter', () => setActive(i));
+      });
+
+      if ('IntersectionObserver' in window) {
+        const hio = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setActive(0);
+              hio.disconnect();
+            }
+          });
+        }, { threshold: 0.3 });
+        hio.observe(flow);
+      }
+    })();
+  </script>
+<script>
+    (function () {
+      const panel = document.getElementById('reefFeedPanel');
+      const canvas = document.getElementById('reefCanvas');
+      const videoEl = document.getElementById('reefVideoSource');
+      if (!panel || !canvas || !videoEl) return;
+
+      const REEF_FEEDS = [
+        {
+          src: 'public/reef-feed-1.mp4',
+          cam: 'Coral Reef Cam · Palawan',
+          depth: 'Depth 12m · North Reef',
+          buoy: 'Streaming from buoy cluster B-114'
+        },
+        {
+          src: 'public/reef-feed-2.mp4',
+          cam: 'Surface Cam · West Lagoon',
+          depth: 'Depth 8m · West Lagoon',
+          buoy: 'Streaming from buoy cluster B-092'
+        },
+        {
+          src: 'public/reef-feed-3.mp4',
+          cam: 'Drone Cam · Outer Shelf',
+          depth: 'Depth 18m · Outer Shelf',
+          buoy: 'Streaming from buoy cluster B-201'
+        }
+      ];
+
+      const camLabel = document.getElementById('reefCamLabel');
+      const depthLabel = document.getElementById('reefDepthLabel');
+      const buoyLabel = document.getElementById('reefBuoyLabel');
+      const progressEl = document.getElementById('reefProgress');
+
+      let feedIdx = 0;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function applyLabels(feed) {
+        if (camLabel) camLabel.textContent = feed.cam;
+        if (depthLabel) depthLabel.textContent = feed.depth;
+        if (buoyLabel) buoyLabel.textContent = feed.buoy;
+      }
+
+      function loadFeed(idx) {
+        const feed = REEF_FEEDS[idx];
+        videoEl.src = feed.src;
+        videoEl.load();
+        videoEl.play().catch(() => {});
+        return feed;
+      }
+
+      applyLabels(REEF_FEEDS[0]);
+      loadFeed(0);
+
+      function scheduleNextSwitch(triggerFn) {
+        const delay = 4000 + Math.random() * 1000;
+        if (progressEl) {
+          progressEl.style.animation = 'none';
+          void progressEl.offsetWidth;
+          progressEl.style.animation = `feedProgress ${delay / 1000}s linear`;
+        }
+        return setTimeout(() => {
+          feedIdx = (feedIdx + 1) % REEF_FEEDS.length;
+          triggerFn();
+          scheduleNextSwitch(triggerFn);
+        }, delay);
+      }
+
+      function startFallback() {
+        scheduleNextSwitch(() => {
+          applyLabels(REEF_FEEDS[feedIdx]);
+          loadFeed(feedIdx);
+        });
+      }
+
+      if (reduceMotion || !window.WebGLRenderingContext) {
+        startFallback();
+        return;
+      }
+
+      import('three').then((THREE) => {
+        let renderer;
+        try {
+          renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+        } catch (e) {
+          startFallback();
+          return;
+        }
+
+        function sizeRenderer() {
+          const w = panel.clientWidth || 1;
+          const h = panel.clientHeight || 1;
+          renderer.setSize(w, h, false);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+          uniforms.uResolution.value.set(w, h);
+        }
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+        camera.position.z = 1;
+
+        const texture = new THREE.VideoTexture(videoEl);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.format = THREE.RGBFormat;
+
+        const uniforms = {
+          uTexture: { value: texture },
+          uTime: { value: 0 },
+          uGlitchIntensity: { value: 0 },
+          uGrayMix: { value: 0 },
+          uResolution: { value: new THREE.Vector2(1, 1) },
+          uVideoResolution: { value: new THREE.Vector2(16, 9) }
+        };
+
+        videoEl.addEventListener('loadedmetadata', () => {
+          if (videoEl.videoWidth && videoEl.videoHeight) {
+            uniforms.uVideoResolution.value.set(videoEl.videoWidth, videoEl.videoHeight);
+          }
+        });
+
+        const vertexShader = `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `;
+
+        const fragmentShader = `
+          varying vec2 vUv;
+          uniform sampler2D uTexture;
+          uniform float uTime;
+          uniform float uGlitchIntensity;
+          uniform float uGrayMix;
+          uniform vec2 uResolution;
+          uniform vec2 uVideoResolution;
+
+          float random(vec2 st) {
+            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+          }
+
+          vec2 coverUv(vec2 uv) {
+            float resAspect = uResolution.x / uResolution.y;
+            float videoAspect = uVideoResolution.x / uVideoResolution.y;
+            vec2 scale = vec2(1.0);
+            if (resAspect > videoAspect) {
+              scale.y = videoAspect / resAspect;
+            } else {
+              scale.x = resAspect / videoAspect;
+            }
+            return (uv - 0.5) * scale + 0.5;
+          }
+
+          void main() {
+            vec2 uv = coverUv(vUv);
+
+            float slices = floor(uv.y * 40.0);
+            float sliceOffset = random(vec2(slices, floor(uTime * 20.0))) * 2.0 - 1.0;
+            float displacement = sliceOffset * uGlitchIntensity * 0.08;
+
+            float r = texture2D(uTexture, uv + vec2(displacement * 1.2, 0.0)).r;
+            float g = texture2D(uTexture, uv + vec2(displacement * 0.5, 0.0)).g;
+            float b = texture2D(uTexture, uv + vec2(displacement * -0.8, 0.0)).b;
+
+            vec3 color = vec3(r, g, b);
+
+            float noise = random(uv * uTime * 1000.0) * uGlitchIntensity * 0.3;
+            color += noise;
+
+            float gray = dot(color, vec3(0.299, 0.587, 0.114));
+            color = mix(color, vec3(gray), uGrayMix);
+
+            color = mix(color, (color - 0.5) * 1.5 + 0.5, uGlitchIntensity * 0.7);
+
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+
+        const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms });
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        sizeRenderer();
+        if ('ResizeObserver' in window) {
+          new ResizeObserver(sizeRenderer).observe(panel);
+        } else {
+          window.addEventListener('resize', sizeRenderer);
+        }
+
+        const clock = new THREE.Clock();
+        let glitchTarget = 0;
+        let grayTarget = 0;
+        let rafId;
+        let running = false;
+
+        function animate() {
+          running = true;
+          rafId = requestAnimationFrame(animate);
+          uniforms.uTime.value += clock.getDelta();
+          uniforms.uGlitchIntensity.value += (glitchTarget - uniforms.uGlitchIntensity.value) * 0.3;
+          uniforms.uGrayMix.value += (grayTarget - uniforms.uGrayMix.value) * 0.3;
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            cancelAnimationFrame(rafId);
+          } else if (!panel._offscreen) {
+            animate();
+          }
+        });
+
+        // Pause rendering while the panel is scrolled out of view.
+        if ('IntersectionObserver' in window) {
+          new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              panel._offscreen = !entry.isIntersecting;
+              if (!entry.isIntersecting) {
+                cancelAnimationFrame(rafId);
+              } else if (!document.hidden) {
+                animate();
+              }
+            });
+          }, { threshold: 0 }).observe(panel);
+        }
+
+        function triggerSlam() {
+          glitchTarget = 1.0;
+          grayTarget = 1.0;
+          setTimeout(() => {
+            applyLabels(REEF_FEEDS[feedIdx]);
+            loadFeed(feedIdx);
+          }, 90);
+          setTimeout(() => {
+            glitchTarget = 0.0;
+            grayTarget = 0.0;
+          }, 160);
+        }
+
+        scheduleNextSwitch(triggerSlam);
+      }).catch(() => {
+        startFallback();
+      });
+    })();
+
+  </script>
+<script>
+    (function () {
+      const timeline = document.getElementById('alertsTimeline');
+      const sensorCountEl = document.getElementById('sensorCount');
+      if (!timeline) return;
+
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const SEVERITY_STYLES = {
+        orange: { dotBg: 'bg-orange-50', dotBorder: 'border-orange-300', dot: 'bg-orange-500', cardBorder: 'border-orange-100', cardBg: 'bg-orange-50/50', text: 'text-orange-600', color: '#f97316' },
+        yellow: { dotBg: 'bg-yellow-50', dotBorder: 'border-yellow-300', dot: 'bg-yellow-500', cardBorder: 'border-yellow-100', cardBg: 'bg-yellow-50/50', text: 'text-yellow-600', color: '#eab308' },
+        blue:   { dotBg: 'bg-blue-50',   dotBorder: 'border-blue-300',   dot: 'bg-brand-blue', cardBorder: 'border-blue-100',   cardBg: 'bg-brand-light',   text: 'text-brand-blue', color: '#1e4b9b' },
+        green:  { dotBg: 'bg-green-50',  dotBorder: 'border-green-300',  dot: 'bg-green-500',  cardBorder: 'border-green-100',  cardBg: 'bg-green-50/50',  text: 'text-green-600', color: '#22c55e' }
+      };
+
+      const INCOMING_POOL = [
+        { title: 'Bleaching alert', place: 'Great Barrier Reef', severity: 'orange' },
+        { title: 'Plastic hotspot detected', place: 'Bay of Bengal', severity: 'yellow' },
+        { title: 'Sensor buoy deployed', place: 'Coral Triangle, Indonesia', severity: 'blue' },
+        { title: 'Water quality improved', place: 'Monterey Bay', severity: 'green' },
+        { title: 'Migration pattern shift', place: 'Humpback whales, Baja California', severity: 'orange' },
+        { title: 'Thermal spike detected', place: 'Red Sea Reef Belt', severity: 'orange' },
+        { title: 'Coral spawning observed', place: 'Coral Triangle, Philippines', severity: 'green' },
+        { title: 'Oxygen levels dropping', place: 'Gulf of Mexico', severity: 'yellow' },
+        { title: 'New buoy cluster online', place: 'Great Barrier Reef North', severity: 'blue' },
+        { title: 'Acidity rising', place: 'Coral Sea', severity: 'yellow' },
+        { title: 'Shark migration tracked', place: 'Baja California Coast', severity: 'blue' },
+        { title: 'Storm swell detected', place: 'South Pacific', severity: 'orange' }
+      ];
+
+      function formatAge(minutes) {
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return Math.round(minutes) + 'm ago';
+        if (minutes < 1440) return Math.round(minutes / 60) + 'h ago';
+        return Math.round(minutes / 1440) + 'd ago';
+      }
+
+      function tickTimestamps() {
+        timeline.querySelectorAll('.alert-timestamp').forEach((el) => {
+          let mins = parseFloat(el.dataset.minutes || '0') + 1;
+          el.dataset.minutes = mins;
+          el.textContent = formatAge(mins);
+        });
+      }
+
+      function buildAlertNode(item) {
+        const s = SEVERITY_STYLES[item.severity];
+        const wrap = document.createElement('div');
+        wrap.className = 'relative mb-5' + (reduceMotion ? '' : ' alert-enter');
+        wrap.dataset.severity = item.severity;
+        wrap.innerHTML = `
+          <span class="absolute -left-8 top-1 w-[22px] h-[22px] rounded-full ${s.dotBg} border-2 ${s.dotBorder} flex items-center justify-center">
+            <span class="w-2 h-2 rounded-full ${s.dot}"></span>
+          </span>
+          <div class="alert-card-premium magic-card border ${s.cardBorder} ${s.cardBg} rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-2${reduceMotion ? '' : ' alert-new-flash'}" style="--severity-color:${s.color}">
+            <div class="alert-shine"></div>
+            <div class="relative z-10">
+              <span class="text-sm font-semibold text-gray-900">${item.title}</span>
+              <span class="text-sm text-gray-600"> &mdash; ${item.place}</span>
+            </div>
+            <span class="relative z-10 alert-timestamp text-xs font-medium ${s.text} uppercase tracking-wide whitespace-nowrap" data-minutes="0">Just now</span>
+          </div>
+        `;
+        return wrap;
+      }
+
+      function pushNewAlert() {
+        const item = INCOMING_POOL[Math.floor(Math.random() * INCOMING_POOL.length)];
+        const node = buildAlertNode(item);
+        const line = timeline.querySelector('.alert-timeline-line');
+        if (line && line.nextSibling) {
+          timeline.insertBefore(node, line.nextSibling);
+        } else {
+          timeline.appendChild(node);
+        }
+
+        const all = timeline.querySelectorAll(':scope > div.relative:not(.alert-timeline-line)');
+        const MAX_VISIBLE = 6;
+        if (all.length > MAX_VISIBLE) {
+          const oldest = all[all.length - 1];
+          if (reduceMotion) {
+            oldest.remove();
+          } else {
+            oldest.classList.add('alert-exit');
+            setTimeout(() => oldest.remove(), 460);
+          }
+        }
+      }
+
+      setInterval(tickTimestamps, 15000);
+
+      function scheduleNext() {
+        const delay = 2000 + Math.random() * 1000;
+        setTimeout(() => {
+          pushNewAlert();
+          scheduleNext();
+        }, delay);
+      }
+      scheduleNext();
+
+      if (sensorCountEl) {
+        let count = parseInt(sensorCountEl.textContent.replace(/,/g, ''), 10) || 2481;
+        setInterval(() => {
+          count += Math.floor(Math.random() * 5) - 2;
+          if (count < 2400) count = 2400;
+          sensorCountEl.textContent = count.toLocaleString('en-US');
+        }, 3500);
+      }
+    })();
+  </script>
+
+<script>
+  (function() {
+    function initOceanHealthVanta() {
+      if (typeof VANTA === 'undefined' || !VANTA.FOG) {
+        setTimeout(initOceanHealthVanta, 100);
+        return;
+      }
+      const vantaEffect = VANTA.FOG({
+        el: "#oceanHealthVantaBg",
+        mouseControls: false,
+        touchControls: false,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        highlightColor: 0x310bea,
+        midtoneColor: 0x3e54ed,
+        lowlightColor: 0x9c4cf,
+        baseColor: 0x60615,
+        blurFactor: 0.25,
+        speed: 2.50,
+        zoom: 1.50,
+        scale: 1.0,
+        scaleMobile: 1.0
+      });
+      // Pause the WebGL render loop while this section is off-screen.
+      const vantaEl = document.getElementById('oceanHealthVantaBg');
+      if (vantaEl && 'IntersectionObserver' in window) {
+        const vio = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) vantaEffect.resume?.();
+            else vantaEffect.pause?.();
+          });
+        }, { threshold: 0 });
+        vio.observe(vantaEl);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initOceanHealthVanta);
+    } else {
+      initOceanHealthVanta();
+    }
+  })();
+</script>
+
+<script>
+  (function() {
+    const hexToRgb = hex => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      if (!result) return [1, 1, 1];
+      return [parseInt(result[1], 16) / 255, parseInt(result[2], 16) / 255, parseInt(result[3], 16) / 255];
+    };
+
+    const grainientVertex = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+    const grainientFragment = `#version 300 es
+precision highp float;
+uniform vec2 iResolution;
+uniform float iTime;
+uniform float uTimeSpeed;
+uniform float uColorBalance;
+uniform float uWarpStrength;
+uniform float uWarpFrequency;
+uniform float uWarpSpeed;
+uniform float uWarpAmplitude;
+uniform float uBlendAngle;
+uniform float uBlendSoftness;
+uniform float uRotationAmount;
+uniform float uNoiseScale;
+uniform float uGrainAmount;
+uniform float uGrainScale;
+uniform float uGrainAnimated;
+uniform float uContrast;
+uniform float uGamma;
+uniform float uSaturation;
+uniform vec2 uCenterOffset;
+uniform float uZoom;
+uniform vec3 uColor1;
+uniform vec3 uColor2;
+uniform vec3 uColor3;
+out vec4 fragColor;
+#define S(a,b,t) smoothstep(a,b,t)
+mat2 Rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);}
+vec2 hash(vec2 p){p=vec2(dot(p,vec2(2127.1,81.17)),dot(p,vec2(1269.5,283.37)));return fract(sin(p)*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);float n=mix(mix(dot(-1.0+2.0*hash(i+vec2(0.0,0.0)),f-vec2(0.0,0.0)),dot(-1.0+2.0*hash(i+vec2(1.0,0.0)),f-vec2(1.0,0.0)),u.x),mix(dot(-1.0+2.0*hash(i+vec2(0.0,1.0)),f-vec2(0.0,1.0)),dot(-1.0+2.0*hash(i+vec2(1.0,1.0)),f-vec2(1.0,1.0)),u.x),u.y);return 0.5+0.5*n;}
+void mainImage(out vec4 o, vec2 C){
+  float t=iTime*uTimeSpeed;
+  vec2 uv=C/iResolution.xy;
+  float ratio=iResolution.x/iResolution.y;
+  vec2 tuv=uv-0.5+uCenterOffset;
+  tuv/=max(uZoom,0.001);
+
+  float degree=noise(vec2(t*0.1,tuv.x*tuv.y)*uNoiseScale);
+  tuv.y*=1.0/ratio;
+  tuv*=Rot(radians((degree-0.5)*uRotationAmount+180.0));
+  tuv.y*=ratio;
+
+  float frequency=uWarpFrequency;
+  float ws=max(uWarpStrength,0.001);
+  float amplitude=uWarpAmplitude/ws;
+  float warpTime=t*uWarpSpeed;
+  tuv.x+=sin(tuv.y*frequency+warpTime)/amplitude;
+  tuv.y+=sin(tuv.x*(frequency*1.5)+warpTime)/(amplitude*0.5);
+
+  vec3 colLav=uColor1;
+  vec3 colOrg=uColor2;
+  vec3 colDark=uColor3;
+  float b=uColorBalance;
+  float s=max(uBlendSoftness,0.0);
+  mat2 blendRot=Rot(radians(uBlendAngle));
+  float blendX=(tuv*blendRot).x;
+  float edge0=-0.3-b-s;
+  float edge1=0.2-b+s;
+  float v0=0.5-b+s;
+  float v1=-0.3-b-s;
+  vec3 layer1=mix(colDark,colOrg,S(edge0,edge1,blendX));
+  vec3 layer2=mix(colOrg,colLav,S(edge0,edge1,blendX));
+  vec3 col=mix(layer1,layer2,S(v0,v1,tuv.y));
+
+  vec2 grainUv=uv*max(uGrainScale,0.001);
+  if(uGrainAnimated>0.5){grainUv+=vec2(iTime*0.05);}
+  float grain=fract(sin(dot(grainUv,vec2(12.9898,78.233)))*43758.5453);
+  col+=(grain-0.5)*uGrainAmount;
+
+  col=(col-0.5)*uContrast+0.5;
+  float luma=dot(col,vec3(0.2126,0.7152,0.0722));
+  col=mix(vec3(luma),col,uSaturation);
+  col=pow(max(col,0.0),vec3(1.0/max(uGamma,0.001)));
+  col=clamp(col,0.0,1.0);
+
+  o=vec4(col,1.0);
+}
+void main(){
+  vec4 o=vec4(0.0);
+  mainImage(o,gl_FragCoord.xy);
+  fragColor=o;
+}
+`;
+
+    function compileShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Grainient shader error:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    function initGrainientBackground(containerId, settings) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.display = 'block';
+      container.appendChild(canvas);
+
+      const gl = canvas.getContext('webgl2', { alpha: true, antialias: false });
+      if (!gl) { console.warn('WebGL2 not supported; Grainient background skipped.'); return; }
+
+      const vShader = compileShader(gl, gl.VERTEX_SHADER, grainientVertex);
+      const fShader = compileShader(gl, gl.FRAGMENT_SHADER, grainientFragment);
+      if (!vShader || !fShader) return;
+
+      const program = gl.createProgram();
+      gl.attachShader(program, vShader);
+      gl.attachShader(program, fShader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Grainient program link error:', gl.getProgramInfoLog(program));
+        return;
+      }
+      gl.useProgram(program);
+
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const positionLoc = gl.getAttribLocation(program, 'position');
+      gl.enableVertexAttribArray(positionLoc);
+      gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+      const uniforms = {};
+      ['iResolution','iTime','uTimeSpeed','uColorBalance','uWarpStrength','uWarpFrequency','uWarpSpeed',
+       'uWarpAmplitude','uBlendAngle','uBlendSoftness','uRotationAmount','uNoiseScale','uGrainAmount',
+       'uGrainScale','uGrainAnimated','uContrast','uGamma','uSaturation','uCenterOffset','uZoom',
+       'uColor1','uColor2','uColor3'].forEach(name => {
+        uniforms[name] = gl.getUniformLocation(program, name);
+      });
+
+      const c1 = hexToRgb(settings.color1);
+      const c2 = hexToRgb(settings.color2);
+      const c3 = hexToRgb(settings.color3);
+
+      function setSize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = container.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width * dpr));
+        const h = Math.max(1, Math.floor(rect.height * dpr));
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        gl.viewport(0, 0, w, h);
+        gl.useProgram(program);
+        gl.uniform2f(uniforms.iResolution, w, h);
+        render();
+      }
+
+      function render() {
+        gl.useProgram(program);
+        gl.uniform1f(uniforms.uTimeSpeed, settings.timeSpeed);
+        gl.uniform1f(uniforms.uColorBalance, settings.colorBalance);
+        gl.uniform1f(uniforms.uWarpStrength, settings.warpStrength);
+        gl.uniform1f(uniforms.uWarpFrequency, settings.warpFrequency);
+        gl.uniform1f(uniforms.uWarpSpeed, settings.warpSpeed);
+        gl.uniform1f(uniforms.uWarpAmplitude, settings.warpAmplitude);
+        gl.uniform1f(uniforms.uBlendAngle, settings.blendAngle);
+        gl.uniform1f(uniforms.uBlendSoftness, settings.blendSoftness);
+        gl.uniform1f(uniforms.uRotationAmount, settings.rotationAmount);
+        gl.uniform1f(uniforms.uNoiseScale, settings.noiseScale);
+        gl.uniform1f(uniforms.uGrainAmount, settings.grainAmount);
+        gl.uniform1f(uniforms.uGrainScale, settings.grainScale);
+        gl.uniform1f(uniforms.uGrainAnimated, settings.grainAnimated ? 1.0 : 0.0);
+        gl.uniform1f(uniforms.uContrast, settings.contrast);
+        gl.uniform1f(uniforms.uGamma, settings.gamma);
+        gl.uniform1f(uniforms.uSaturation, settings.saturation);
+        gl.uniform2f(uniforms.uCenterOffset, settings.centerX, settings.centerY);
+        gl.uniform1f(uniforms.uZoom, settings.zoom);
+        gl.uniform3f(uniforms.uColor1, c1[0], c1[1], c1[2]);
+        gl.uniform3f(uniforms.uColor2, c2[0], c2[1], c2[2]);
+        gl.uniform3f(uniforms.uColor3, c3[0], c3[1], c3[2]);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+
+      const ro = new ResizeObserver(setSize);
+      ro.observe(container);
+      setSize();
+
+      let raf = 0;
+      let isVisible = true;
+      let isPageVisible = !document.hidden;
+      const t0 = performance.now();
+
+      const loop = t => {
+        gl.useProgram(program);
+        gl.uniform1f(uniforms.iTime, (t - t0) * 0.001);
+        render();
+        raf = requestAnimationFrame(loop);
+      };
+
+      const tryStart = () => { if (isVisible && isPageVisible && raf === 0) raf = requestAnimationFrame(loop); };
+      const tryStop = () => { if (raf !== 0) { cancelAnimationFrame(raf); raf = 0; } };
+
+      const io = new IntersectionObserver(
+        ([entry]) => { isVisible = entry.isIntersecting; isVisible ? tryStart() : tryStop(); },
+        { threshold: 0 }
+      );
+      io.observe(container);
+
+      document.addEventListener('visibilitychange', () => {
+        isPageVisible = !document.hidden;
+        isPageVisible ? tryStart() : tryStop();
+      });
+
+      tryStart();
+    }
+
+    function boot() {
+      initGrainientBackground('marineOracleGrainientBg', {
+        color1: '#3B82F6',
+        color2: '#06B6D4',
+        color3: '#dbd3e1',
+        timeSpeed: 3.2,
+        colorBalance: 0,
+        warpStrength: 1,
+        warpFrequency: 5,
+        warpSpeed: 1.4,
+        warpAmplitude: 50,
+        blendAngle: 0,
+        blendSoftness: 0.05,
+        rotationAmount: 500,
+        noiseScale: 2,
+        grainAmount: 0.1,
+        grainScale: 2,
+        grainAnimated: false,
+        contrast: 1.5,
+        gamma: 1,
+        saturation: 1,
+        centerX: 0,
+        centerY: 0,
+        zoom: 0.9
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  })();
+</script>
+
+<script type="module">
+  import { Renderer, Camera, Geometry, Program, Mesh } from "ogl";
+
+  const particlesDefaultColors = ['#ffffff', '#ffffff', '#ffffff'];
+
+  const particlesHexToRgb = hex => {
+    hex = hex.replace(/^#/, '');
+    if (hex.length === 3) {
+      hex = hex.split('').map(c => c + c).join('');
+    }
+    const int = parseInt(hex.slice(0, 6), 16);
+    const r = ((int >> 16) & 255) / 255;
+    const g = ((int >> 8) & 255) / 255;
+    const b = (int & 255) / 255;
+    return [r, g, b];
+  };
+
+  const particlesVertex = `
+    attribute vec3 position;
+    attribute vec4 random;
+    attribute vec3 color;
+
+    uniform mat4 modelMatrix;
+    uniform mat4 viewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform float uTime;
+    uniform float uSpread;
+    uniform float uBaseSize;
+    uniform float uSizeRandomness;
+
+    varying vec4 vRandom;
+    varying vec3 vColor;
+
+    void main() {
+      vRandom = random;
+      vColor = color;
+
+      vec3 pos = position * uSpread;
+      pos.z *= 10.0;
+
+      vec4 mPos = modelMatrix * vec4(pos, 1.0);
+      float t = uTime;
+      mPos.x += sin(t * random.z + 6.28 * random.w) * mix(0.1, 1.5, random.x);
+      mPos.y += sin(t * random.y + 6.28 * random.x) * mix(0.1, 1.5, random.w);
+      mPos.z += sin(t * random.w + 6.28 * random.y) * mix(0.1, 1.5, random.z);
+
+      vec4 mvPos = viewMatrix * mPos;
+
+      if (uSizeRandomness == 0.0) {
+        gl_PointSize = uBaseSize;
+      } else {
+        gl_PointSize = (uBaseSize * (1.0 + uSizeRandomness * (random.x - 0.5))) / length(mvPos.xyz);
+      }
+
+      gl_Position = projectionMatrix * mvPos;
+    }
+  `;
+
+  const particlesFragment = `
+    precision highp float;
+
+    uniform float uTime;
+    uniform float uAlphaParticles;
+    varying vec4 vRandom;
+    varying vec3 vColor;
+
+    void main() {
+      vec2 uv = gl_PointCoord.xy;
+      float d = length(uv - vec2(0.5));
+
+      if(uAlphaParticles < 0.5) {
+        if(d > 0.5) {
+          discard;
+        }
+        gl_FragColor = vec4(vColor + 0.2 * sin(uv.yxx + uTime + vRandom.y * 6.28), 1.0);
+      } else {
+        float circle = smoothstep(0.5, 0.4, d) * 0.8;
+        gl_FragColor = vec4(vColor + 0.2 * sin(uv.yxx + uTime + vRandom.y * 6.28), circle);
+      }
+    }
+  `;
+
+  function initParticlesBackground(containerId, settings) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const {
+      particleCount = 200,
+      particleSpread = 10,
+      speed = 0.1,
+      particleColors,
+      moveParticlesOnHover = false,
+      particleHoverFactor = 1,
+      alphaParticles = false,
+      particleBaseSize = 100,
+      sizeRandomness = 1,
+      cameraDistance = 20,
+      disableRotation = false,
+      pixelRatio = 1
+    } = settings;
+
+    let mouse = { x: 0, y: 0 };
+
+    const renderer = new Renderer({
+      dpr: pixelRatio,
+      depth: false,
+      alpha: true
+    });
+    const gl = renderer.gl;
+    gl.canvas.style.width = '100%';
+    gl.canvas.style.height = '100%';
+    gl.canvas.style.display = 'block';
+    container.appendChild(gl.canvas);
+    gl.clearColor(0, 0, 0, 0);
+
+    const camera = new Camera(gl, { fov: 15 });
+    camera.position.set(0, 0, cameraDistance);
+
+    const resize = () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      renderer.setSize(width, height);
+      camera.perspective({ aspect: gl.canvas.width / gl.canvas.height });
+    };
+    window.addEventListener('resize', resize, false);
+    resize();
+
+    const handleMouseMove = e => {
+      const rect = container.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      mouse = { x, y };
+    };
+
+    if (moveParticlesOnHover) {
+      container.addEventListener('mousemove', handleMouseMove);
+    }
+
+    const count = particleCount;
+    const positions = new Float32Array(count * 3);
+    const randoms = new Float32Array(count * 4);
+    const colors = new Float32Array(count * 3);
+    const palette = particleColors && particleColors.length > 0 ? particleColors : particlesDefaultColors;
+
+    for (let i = 0; i < count; i++) {
+      let x, y, z, len;
+      do {
+        x = Math.random() * 2 - 1;
+        y = Math.random() * 2 - 1;
+        z = Math.random() * 2 - 1;
+        len = x * x + y * y + z * z;
+      } while (len > 1 || len === 0);
+      const r = Math.cbrt(Math.random());
+      positions.set([x * r, y * r, z * r], i * 3);
+      randoms.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
+      const col = particlesHexToRgb(palette[Math.floor(Math.random() * palette.length)]);
+      colors.set(col, i * 3);
+    }
+
+    const geometry = new Geometry(gl, {
+      position: { size: 3, data: positions },
+      random: { size: 4, data: randoms },
+      color: { size: 3, data: colors }
+    });
+
+    const program = new Program(gl, {
+      vertex: particlesVertex,
+      fragment: particlesFragment,
+      uniforms: {
+        uTime: { value: 0 },
+        uSpread: { value: particleSpread },
+        uBaseSize: { value: particleBaseSize * pixelRatio },
+        uSizeRandomness: { value: sizeRandomness },
+        uAlphaParticles: { value: alphaParticles ? 1 : 0 }
+      },
+      transparent: true,
+      depthTest: false
+    });
+
+    const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
+
+    let animationFrameId;
+    let lastTime = performance.now();
+    let elapsed = 0;
+
+    const update = t => {
+      animationFrameId = requestAnimationFrame(update);
+      const delta = t - lastTime;
+      lastTime = t;
+      elapsed += delta * speed;
+
+      program.uniforms.uTime.value = elapsed * 0.001;
+
+      if (moveParticlesOnHover) {
+        particles.position.x = -mouse.x * particleHoverFactor;
+        particles.position.y = -mouse.y * particleHoverFactor;
+      } else {
+        particles.position.x = 0;
+        particles.position.y = 0;
+      }
+
+      if (!disableRotation) {
+        particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1;
+        particles.rotation.y = Math.cos(elapsed * 0.0005) * 0.15;
+        particles.rotation.z += 0.01 * speed;
+      }
+
+      renderer.render({ scene: particles, camera });
+    };
+
+    animationFrameId = requestAnimationFrame(update);
+  }
+
+  initParticlesBackground('liveAlertsParticlesBg', {
+    particleColors: ["#3B82F6"],
+    particleCount: 400,
+    particleSpread: 10,
+    speed: 1.3,
+    particleBaseSize: 200,
+    moveParticlesOnHover: false,
+    alphaParticles: false,
+    disableRotation: true,
+    pixelRatio: 2
+  });
+</script>
+
+<script>
+  (function() {
+    function initGooeyNav() {
+      const container = document.getElementById('gooeyNav');
+      const navList = document.getElementById('gooeyNavList');
+      const filterEl = document.getElementById('gooeyFilter');
+      const textEl = document.getElementById('gooeyText');
+      if (!container || !navList || !filterEl || !textEl) return;
+
+      const settings = {
+        animationTime: 600,
+        particleCount: 15,
+        particleDistances: [90, 10],
+        particleR: 100,
+        timeVariance: 300,
+        colors: [1, 2, 3, 1, 2, 3, 1, 4],
+        initialActiveIndex: 0
+      };
+
+      let activeIndex = settings.initialActiveIndex;
+
+      const noise = (n = 1) => n / 2 - Math.random() * n;
+
+      const getXY = (distance, pointIndex, totalPoints) => {
+        const angle = ((360 + noise(8)) / totalPoints) * pointIndex * (Math.PI / 180);
+        return [distance * Math.cos(angle), distance * Math.sin(angle)];
+      };
+
+      const createParticle = (i, t, d, r) => {
+        let rotate = noise(r / 10);
+        return {
+          start: getXY(d[0], settings.particleCount - i, settings.particleCount),
+          end: getXY(d[1] + noise(7), settings.particleCount - i, settings.particleCount),
+          time: t,
+          scale: 1 + noise(0.2),
+          color: settings.colors[Math.floor(Math.random() * settings.colors.length)],
+          rotate: rotate > 0 ? (rotate + r / 20) * 10 : (rotate - r / 20) * 10
+        };
+      };
+
+      const makeParticles = element => {
+        const d = settings.particleDistances;
+        const r = settings.particleR;
+        const bubbleTime = settings.animationTime * 2 + settings.timeVariance;
+        element.style.setProperty('--time', `${bubbleTime}ms`);
+
+        for (let i = 0; i < settings.particleCount; i++) {
+          const t = settings.animationTime * 2 + noise(settings.timeVariance * 2);
+          const p = createParticle(i, t, d, r);
+          element.classList.remove('active');
+
+          setTimeout(() => {
+            const particle = document.createElement('span');
+            const point = document.createElement('span');
+            particle.classList.add('gooey-particle');
+            particle.style.setProperty('--start-x', `${p.start[0]}px`);
+            particle.style.setProperty('--start-y', `${p.start[1]}px`);
+            particle.style.setProperty('--end-x', `${p.end[0]}px`);
+            particle.style.setProperty('--end-y', `${p.end[1]}px`);
+            particle.style.setProperty('--time', `${p.time}ms`);
+            particle.style.setProperty('--scale', `${p.scale}`);
+            particle.style.setProperty('--color', `var(--color-${p.color}, white)`);
+            particle.style.setProperty('--rotate', `${p.rotate}deg`);
+
+            point.classList.add('gooey-point');
+            particle.appendChild(point);
+            element.appendChild(particle);
+            requestAnimationFrame(() => {
+              element.classList.add('active');
+            });
+            setTimeout(() => {
+              try { element.removeChild(particle); } catch (e) { /* noop */ }
+            }, t);
+          }, 30);
+        }
+      };
+
+      const updateEffectPosition = element => {
+        const containerRect = container.getBoundingClientRect();
+        const pos = element.getBoundingClientRect();
+        const styles = {
+          left: `${pos.x - containerRect.x}px`,
+          top: `${pos.y - containerRect.y}px`,
+          width: `${pos.width}px`,
+          height: `${pos.height}px`
+        };
+        Object.assign(filterEl.style, styles);
+        Object.assign(textEl.style, styles);
+        textEl.innerText = element.innerText;
+      };
+
+      const handleClick = (liEl, index) => {
+        if (activeIndex === index) return;
+        activeIndex = index;
+        navList.querySelectorAll('li').forEach((li, i) => li.classList.toggle('active', i === index));
+        updateEffectPosition(liEl);
+
+        filterEl.querySelectorAll('.gooey-particle').forEach(p => filterEl.removeChild(p));
+
+        textEl.classList.remove('active');
+        void textEl.offsetWidth;
+        textEl.classList.add('active');
+
+        makeParticles(filterEl);
+      };
+
+      navList.querySelectorAll('li').forEach((li, index) => {
+        const a = li.querySelector('a');
+        if (!a) return;
+        a.addEventListener('click', e => {
+          e.preventDefault();
+          handleClick(li, index);
+        });
+        a.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick(li, index);
+          }
+        });
+      });
+
+      const activeLi = navList.querySelectorAll('li')[activeIndex];
+      if (activeLi) {
+        updateEffectPosition(activeLi);
+        textEl.classList.add('active');
+      }
+
+      const ro = new ResizeObserver(() => {
+        const currentActiveLi = navList.querySelectorAll('li')[activeIndex];
+        if (currentActiveLi) updateEffectPosition(currentActiveLi);
+      });
+      ro.observe(container);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGooeyNav);
+    } else {
+      initGooeyNav();
+    }
+  })();
+</script>
+
+<script>
+  (function() {
+    function parseHSL(hslStr) {
+      const match = hslStr.match(/([\d.]+)\s*([\d.]+)%?\s*([\d.]+)%?/);
+      if (!match) return { h: 213, s: 90, l: 75 };
+      return { h: parseFloat(match[1]), s: parseFloat(match[2]), l: parseFloat(match[3]) };
+    }
+
+    function buildGlowVars(glowColor, intensity) {
+      const { h, s, l } = parseHSL(glowColor);
+      const base = `${h}deg ${s}% ${l}%`;
+      const opacities = [100, 60, 50, 40, 30, 20, 10];
+      const keys = ['', '-60', '-50', '-40', '-30', '-20', '-10'];
+      const vars = {};
+      for (let i = 0; i < opacities.length; i++) {
+        vars[`--glow-color${keys[i]}`] = `hsl(${base} / ${Math.min(opacities[i] * intensity, 100)}%)`;
+      }
+      return vars;
+    }
+
+    const GRADIENT_POSITIONS = ['80% 55%', '69% 34%', '8% 6%', '41% 38%', '86% 85%', '82% 18%', '51% 4%'];
+    const GRADIENT_KEYS = ['--gradient-one', '--gradient-two', '--gradient-three', '--gradient-four', '--gradient-five', '--gradient-six', '--gradient-seven'];
+    const COLOR_MAP = [0, 1, 2, 0, 1, 2, 1];
+
+    function buildGradientVars(colors) {
+      const vars = {};
+      for (let i = 0; i < 7; i++) {
+        const c = colors[Math.min(COLOR_MAP[i], colors.length - 1)];
+        vars[GRADIENT_KEYS[i]] = `radial-gradient(at ${GRADIENT_POSITIONS[i]}, ${c} 0px, transparent 50%)`;
+      }
+      vars['--gradient-base'] = `linear-gradient(${colors[0]} 0 100%)`;
+      return vars;
+    }
+
+    function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+    function easeInCubic(x) { return x * x * x; }
+
+    function animateValue({ start = 0, end = 100, duration = 1000, delay = 0, ease = easeOutCubic, onUpdate, onEnd }) {
+      const t0 = performance.now() + delay;
+      function tick() {
+        const elapsed = performance.now() - t0;
+        const t = Math.min(elapsed / duration, 1);
+        onUpdate(start + (end - start) * ease(t));
+        if (t < 1) requestAnimationFrame(tick);
+        else if (onEnd) onEnd();
+      }
+      setTimeout(() => requestAnimationFrame(tick), delay);
+    }
+
+    function initBorderGlowCard(card, settings) {
+      const {
+        edgeSensitivity = 30,
+        glowColor = '213 90% 75%',
+        backgroundColor = '#ffffff',
+        borderRadius = 28,
+        glowRadius = 40,
+        glowIntensity = 1.0,
+        coneSpread = 25,
+        animated = false,
+        colors = ['#1e4b9b', '#60a5fa', '#93c5fd'],
+        fillOpacity = 0.5
+      } = settings;
+
+      card.style.setProperty('--card-bg', backgroundColor);
+      card.style.setProperty('--edge-sensitivity', edgeSensitivity);
+      card.style.setProperty('--border-radius', `${borderRadius}px`);
+      card.style.setProperty('--glow-padding', `${glowRadius}px`);
+      card.style.setProperty('--cone-spread', coneSpread);
+      card.style.setProperty('--fill-opacity', fillOpacity);
+
+      const glowVars = buildGlowVars(glowColor, glowIntensity);
+      Object.entries(glowVars).forEach(([k, v]) => card.style.setProperty(k, v));
+
+      const gradientVars = buildGradientVars(colors);
+      Object.entries(gradientVars).forEach(([k, v]) => card.style.setProperty(k, v));
+
+      function getCenterOfElement(el) {
+        const { width, height } = el.getBoundingClientRect();
+        return [width / 2, height / 2];
+      }
+      function getEdgeProximity(el, x, y) {
+        const [cx, cy] = getCenterOfElement(el);
+        const dx = x - cx, dy = y - cy;
+        let kx = Infinity, ky = Infinity;
+        if (dx !== 0) kx = cx / Math.abs(dx);
+        if (dy !== 0) ky = cy / Math.abs(dy);
+        return Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
+      }
+      function getCursorAngle(el, x, y) {
+        const [cx, cy] = getCenterOfElement(el);
+        const dx = x - cx, dy = y - cy;
+        if (dx === 0 && dy === 0) return 0;
+        const radians = Math.atan2(dy, dx);
+        let degrees = radians * (180 / Math.PI) + 90;
+        if (degrees < 0) degrees += 360;
+        return degrees;
+      }
+
+      card.addEventListener('pointermove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const edge = getEdgeProximity(card, x, y);
+        const angle = getCursorAngle(card, x, y);
+        card.style.setProperty('--edge-proximity', `${(edge * 100).toFixed(3)}`);
+        card.style.setProperty('--cursor-angle', `${angle.toFixed(3)}deg`);
+      });
+
+      if (animated) {
+        const angleStart = 110;
+        const angleEnd = 465;
+        card.classList.add('sweep-active');
+        card.style.setProperty('--cursor-angle', `${angleStart}deg`);
+
+        animateValue({ duration: 500, onUpdate: v => card.style.setProperty('--edge-proximity', v) });
+        animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: v => {
+          card.style.setProperty('--cursor-angle', `${(angleEnd - angleStart) * (v / 100) + angleStart}deg`);
+        }});
+        animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: v => {
+          card.style.setProperty('--cursor-angle', `${(angleEnd - angleStart) * (v / 100) + angleStart}deg`);
+        }});
+        animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0,
+          onUpdate: v => card.style.setProperty('--edge-proximity', v),
+          onEnd: () => card.classList.remove('sweep-active')
+        });
+      }
+    }
+
+    function initAllBorderGlow() {
+      const cards = document.querySelectorAll('.hiw-borderglow');
+      cards.forEach(card => {
+        /* FIX: cards now render white with brand-blue glow/gradients instead
+           of black-with-neon-purple/pink/cyan. */
+        initBorderGlowCard(card, {
+          edgeSensitivity: 54,
+          glowColor: '213 90% 75%',
+          backgroundColor: '#ffffff',
+          borderRadius: 28,
+          glowRadius: 58,
+          glowIntensity: 1.4,
+          coneSpread: 14,
+          animated: card.dataset.animated === 'true',
+          colors: ['#1e4b9b', '#60a5fa', '#93c5fd']
+        });
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAllBorderGlow);
+    } else {
+      initAllBorderGlow();
+    }
+  })();
+</script>
+
+<!-- FIX: Ferrofluid-style WebGL background added behind "How Littora Works" -->
+<script type="module">
+  import { Renderer, Program, Mesh, Triangle } from "ogl";
+
+  const hexToRGB = hex => {
+    const c = hex.replace('#','').padEnd(6,'0');
+    return [parseInt(c.slice(0,2),16)/255, parseInt(c.slice(2,4),16)/255, parseInt(c.slice(4,6),16)/255];
+  };
+
+  const ferroVertex = `
+    attribute vec2 position;
+    attribute vec2 uv;
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = vec4(position, 0.0, 1.0); }
+  `;
+
+  const ferroFragment = `
+    precision highp float;
+    uniform vec3 iResolution;
+    uniform float iTime;
+    uniform vec3 uColor0; uniform vec3 uColor1; uniform vec3 uColor2;
+    uniform vec2 uFlow; uniform float uSpeed; uniform float uScale;
+    uniform float uTurbulence; uniform float uFluidity; uniform float uRimWidth;
+    uniform float uSharpness; uniform float uShimmer; uniform float uGlow; uniform float uOpacity;
+    varying vec2 vUv;
+    #define PI 3.14159265
+    float hash(vec3 p3){p3=fract(p3*0.1031);p3+=dot(p3,p3.zyx+33.33);return fract((p3.x+p3.y)*p3.z);}
+    float smin(float a,float b,float k){float r=exp2(-a/k)+exp2(-b/k);return -k*log2(r);}
+    float sinlerp(float a,float b,float w){return mix(a,b,(sin(w*PI-PI/2.0)+1.0)/2.0);}
+    float vn(vec2 p,float s,float seed){
+      vec2 cellp=floor(p/s); vec2 relp=mod(p,s);
+      float g1=hash(vec3(cellp,seed)); float g2=hash(vec3(cellp.x+1.0,cellp.y,seed));
+      float g3=hash(vec3(cellp.x+1.0,cellp.y+1.0,seed)); float g4=hash(vec3(cellp.x,cellp.y+1.0,seed));
+      float bx=sinlerp(g1,g2,relp.x/s); float tx=sinlerp(g4,g3,relp.x/s);
+      return sinlerp(bx,tx,relp.y/s);
+    }
+    float dbn(vec2 p,float s,float seed){
+      float o=s/2.0;
+      float n0=vn(p,s,seed); float n1=vn(p+vec2(o,o),s,seed+0.1);
+      float n2=vn(p+vec2(-o,o),s,seed+0.2); float n3=vn(p+vec2(o,-o),s,seed+0.3);
+      float n4=vn(p+vec2(-o,-o),s,seed+0.4);
+      return (2.0*n0+1.5*n1+1.25*n2+1.125*n3+n4)/7.0;
+    }
+    void main(){
+      float ref = 700.0/max(uScale,0.05);
+      vec2 p = (vUv*iResolution.xy)/iResolution.y*ref;
+      float spd = 200.0*uSpeed; float t = iTime;
+      vec2 dir = uFlow; vec2 perp = vec2(-dir.y, dir.x);
+      float d1 = vn(p+perp*(t*spd),60.0,10.0)*50.0*uTurbulence;
+      float d2 = vn(p-perp*(t*spd),120.0,15.0)*100.0*uTurbulence;
+      float peaks = dbn(p+d1+dir*(t*spd*0.5),40.0,1.0);
+      float peaks2 = dbn(p+d2-dir*(t*spd*0.5),40.0,0.0);
+      float mapeaks = smin(peaks, peaks2, max(uFluidity,0.001));
+      float band = (uRimWidth - abs((mapeaks-0.4)*2.0))*5.0;
+      float ltn = clamp(band - vn(p+dir*(t*spd*0.5),60.0,12.0)*uShimmer, 0.0, 1.0);
+      ltn = pow(ltn, uSharpness)*uGlow;
+      float h = clamp(0.5+(peaks-peaks2)*0.8, 0.0, 1.0);
+      vec3 col = h < 0.5 ? mix(uColor0, uColor1, h*2.0) : mix(uColor1, uColor2, (h-0.5)*2.0);
+      vec3 outc = col*ltn;
+      float a = clamp(max(outc.r,max(outc.g,outc.b)),0.0,1.0);
+      gl_FragColor = vec4(outc, a*uOpacity);
+    }
+  `;
+
+  function initFerrofluid(containerId, opts) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio || 1, 2), alpha: true, antialias: true });
+    const gl = renderer.gl;
+    gl.clearColor(0,0,0,0);
+    gl.canvas.style.width = '100%';
+    gl.canvas.style.height = '100%';
+    gl.canvas.style.display = 'block';
+    container.appendChild(gl.canvas);
+
+    const colors = (opts.colors || ['#dbeafe','#60a5fa','#1e4b9b']).map(hexToRGB);
+    const uniforms = {
+      iResolution: { value: [gl.drawingBufferWidth, gl.drawingBufferHeight, 1] },
+      iTime: { value: 0 },
+      uColor0: { value: colors[0] }, uColor1: { value: colors[1] }, uColor2: { value: colors[2] },
+      uFlow: { value: opts.flow || [1, 0] },
+      uSpeed: { value: opts.speed ?? 0.25 },
+      uScale: { value: opts.scale ?? 1.1 },
+      uTurbulence: { value: opts.turbulence ?? 0.5 },
+      uFluidity: { value: opts.fluidity ?? 0.15 },
+      uRimWidth: { value: opts.rimWidth ?? 0.25 },
+      uSharpness: { value: opts.sharpness ?? 3.0 },
+      uShimmer: { value: opts.shimmer ?? 0.5 },
+      uGlow: { value: opts.glow ?? 2.4 },
+      uOpacity: { value: opts.opacity ?? 1.0 }
+    };
+    const program = new Program(gl, { vertex: ferroVertex, fragment: ferroFragment, uniforms });
+    const geometry = new Triangle(gl);
+    const mesh = new Mesh(gl, { geometry, program });
+
+    function resize() {
+      const rect = container.getBoundingClientRect();
+      renderer.setSize(rect.width, rect.height);
+      uniforms.iResolution.value = [gl.drawingBufferWidth, gl.drawingBufferHeight, 1];
+    }
+    resize();
+    new ResizeObserver(resize).observe(container);
+
+    let raf;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function loop(t) {
+      raf = requestAnimationFrame(loop);
+      uniforms.iTime.value = t * 0.001;
+      renderer.render({ scene: mesh });
+    }
+    if (!reduceMotion) raf = requestAnimationFrame(loop);
+    else renderer.render({ scene: mesh });
+
+    const io = new IntersectionObserver(([entry]) => {
+      if (reduceMotion) return;
+      if (entry.isIntersecting && !raf) raf = requestAnimationFrame(loop);
+      else if (!entry.isIntersecting && raf) { cancelAnimationFrame(raf); raf = null; }
+    }, { threshold: 0 });
+    io.observe(container);
+  }
+
+  function bootFerrofluid() {
+    initFerrofluid('hiwFerrofluidBg', {
+      colors: ['#4F46E5', '#06B6D4', '#E0F2FE'],
+      speed: 0.22,
+      scale: 1.0,
+      turbulence: 0.45,
+      fluidity: 0.18,
+      rimWidth: 0.22,
+      sharpness: 3.2,
+      shimmer: 0.5,
+      glow: 2.2,
+      opacity: 0.9,
+      flow: [1, 0.2]
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootFerrofluid);
+  } else {
+    bootFerrofluid();
+  }
+</script>
+
+<script type="module">
+  import { Renderer, Transform, Vec3, Color, Polyline } from "ogl";
+
+  function initRibbonsBackground(containerId, settings, mouseTarget) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const {
+      colors = ['#FC8EAC'],
+      baseSpring = 0.03,
+      baseFriction = 0.9,
+      baseThickness = 30,
+      offsetFactor = 0.05,
+      maxAge = 500,
+      pointCount = 50,
+      speedMultiplier = 0.6,
+      enableFade = false,
+      enableShaderEffect = false,
+      effectAmplitude = 2,
+      backgroundColor = [0, 0, 0, 0]
+    } = settings;
+
+    const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio || 1, 1.5), alpha: true });
+    const gl = renderer.gl;
+    if (Array.isArray(backgroundColor) && backgroundColor.length === 4) {
+      gl.clearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+    } else {
+      gl.clearColor(0, 0, 0, 0);
+    }
+
+    gl.canvas.style.position = 'absolute';
+    gl.canvas.style.top = '0';
+    gl.canvas.style.left = '0';
+    gl.canvas.style.width = '100%';
+    gl.canvas.style.height = '100%';
+    container.appendChild(gl.canvas);
+
+    const scene = new Transform();
+    const lines = [];
+
+    const vertex = `
+      precision highp float;
+      attribute vec3 position;
+      attribute vec3 next;
+      attribute vec3 prev;
+      attribute vec2 uv;
+      attribute float side;
+      uniform vec2 uResolution;
+      uniform float uDPR;
+      uniform float uThickness;
+      uniform float uTime;
+      uniform float uEnableShaderEffect;
+      uniform float uEffectAmplitude;
+      varying vec2 vUV;
+      vec4 getPosition() {
+          vec4 current = vec4(position, 1.0);
+          vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
+          vec2 nextScreen = next.xy * aspect;
+          vec2 prevScreen = prev.xy * aspect;
+          vec2 tangent = normalize(nextScreen - prevScreen);
+          vec2 normal = vec2(-tangent.y, tangent.x);
+          normal /= aspect;
+          normal *= mix(1.0, 0.1, pow(abs(uv.y - 0.5) * 2.0, 2.0));
+          float dist = length(nextScreen - prevScreen);
+          normal *= smoothstep(0.0, 0.02, dist);
+          float pixelWidthRatio = 1.0 / (uResolution.y / uDPR);
+          float pixelWidth = current.w * pixelWidthRatio;
+          normal *= pixelWidth * uThickness;
+          current.xy -= normal * side;
+          if(uEnableShaderEffect > 0.5) {
+            current.xy += normal * sin(uTime + current.x * 10.0) * uEffectAmplitude;
+          }
+          return current;
+      }
+      void main() {
+          vUV = uv;
+          gl_Position = getPosition();
+      }
+    `;
+
+    const fragment = `
+      precision highp float;
+      uniform vec3 uColor;
+      uniform float uOpacity;
+      uniform float uEnableFade;
+      varying vec2 vUV;
+      void main() {
+          float fadeFactor = 1.0;
+          if(uEnableFade > 0.5) {
+              fadeFactor = 1.0 - smoothstep(0.0, 1.0, vUV.y);
+          }
+          gl_FragColor = vec4(uColor, uOpacity * fadeFactor);
+      }
+    `;
+
+    function resize() {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      renderer.setSize(width, height);
+      lines.forEach(line => line.polyline.resize());
+    }
+    window.addEventListener('resize', resize);
+
+    const center = (colors.length - 1) / 2;
+    colors.forEach((color, index) => {
+      const spring = baseSpring + (Math.random() - 0.5) * 0.05;
+      const friction = baseFriction + (Math.random() - 0.5) * 0.05;
+      const thickness = baseThickness + (Math.random() - 0.5) * 3;
+      const mouseOffset = new Vec3(
+        (index - center) * offsetFactor + (Math.random() - 0.5) * 0.01,
+        (Math.random() - 0.5) * 0.1,
+        0
+      );
+
+      const line = { spring, friction, mouseVelocity: new Vec3(), mouseOffset };
+
+      const count = pointCount;
+      const points = [];
+      for (let i = 0; i < count; i++) points.push(new Vec3());
+      line.points = points;
+
+      line.polyline = new Polyline(gl, {
+        points,
+        vertex,
+        fragment,
+        uniforms: {
+          uColor: { value: new Color(color) },
+          uThickness: { value: thickness },
+          uOpacity: { value: 1.0 },
+          uTime: { value: 0.0 },
+          uEnableShaderEffect: { value: enableShaderEffect ? 1.0 : 0.0 },
+          uEffectAmplitude: { value: effectAmplitude },
+          uEnableFade: { value: enableFade ? 1.0 : 0.0 }
+        }
+      });
+      line.polyline.mesh.setParent(scene);
+      lines.push(line);
+    });
+
+    resize();
+
+    const mouse = new Vec3();
+    function updateMouse(e) {
+      let x, y;
+      const rect = container.getBoundingClientRect();
+      if (e.changedTouches && e.changedTouches.length) {
+        x = e.changedTouches[0].clientX - rect.left;
+        y = e.changedTouches[0].clientY - rect.top;
+      } else {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+      }
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      mouse.set((x / width) * 2 - 1, (y / height) * -2 + 1, 0);
+    }
+    const listenTarget = mouseTarget || container;
+    listenTarget.addEventListener('mousemove', updateMouse);
+    listenTarget.addEventListener('touchstart', updateMouse);
+    listenTarget.addEventListener('touchmove', updateMouse);
+
+    const tmp = new Vec3();
+    let lastTime = performance.now();
+    let rafId = null;
+    let paused = document.hidden;
+
+    function update() {
+      rafId = requestAnimationFrame(update);
+      const currentTime = performance.now();
+      const dt = currentTime - lastTime;
+      lastTime = currentTime;
+
+      lines.forEach(line => {
+        tmp.copy(mouse).add(line.mouseOffset).sub(line.points[0]).multiply(line.spring);
+        line.mouseVelocity.add(tmp).multiply(line.friction);
+        line.points[0].add(line.mouseVelocity);
+
+        for (let i = 1; i < line.points.length; i++) {
+          if (isFinite(maxAge) && maxAge > 0) {
+            const segmentDelay = maxAge / (line.points.length - 1);
+            const alpha = Math.min(1, (dt * speedMultiplier) / segmentDelay);
+            line.points[i].lerp(line.points[i - 1], alpha);
+          } else {
+            line.points[i].lerp(line.points[i - 1], 0.9);
+          }
+        }
+        if (line.polyline.mesh.program.uniforms.uTime) {
+          line.polyline.mesh.program.uniforms.uTime.value = currentTime * 0.001;
+        }
+        line.polyline.updateGeometry();
+      });
+
+      renderer.render({ scene });
+    }
+
+    function start() {
+      if (rafId === null) {
+        lastTime = performance.now();
+        update();
+      }
+    }
+    function stop() {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    }
+
+    // Pause entirely when the tab isn't focused.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop();
+      else if (!paused) start();
+    });
+
+    // For section-bound instances (not the full-page cursor layer), also
+    // pause while the container is scrolled out of view.
+    if (container.id !== 'cursorRibbonsBg' && 'IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          paused = !entry.isIntersecting;
+          if (paused) stop();
+          else if (!document.hidden) start();
+        });
+      }, { threshold: 0 }).observe(container);
+    } else if (!document.hidden) {
+      start();
+    }
+  }
+
+  initRibbonsBackground('ctaRibbonsBg', {
+    baseThickness: 23,
+    colors: ["#5227FF"],
+    speedMultiplier: 0.54,
+    maxAge: 700,
+    enableFade: true,
+    enableShaderEffect: true
+  });
+
+  // Site-wide cursor-trail ribbon: follows the mouse everywhere on the page.
+  initRibbonsBackground('cursorRibbonsBg', {
+    baseThickness: 18,
+    colors: ["#22D3EE"],
+    speedMultiplier: 0.5,
+    maxAge: 500,
+    pointCount: 30,
+    enableFade: false,
+    enableShaderEffect: true
+  }, window);
+</script>
+
+<script>
+  // ===== ClickSpark: site-wide click effect (vanilla port) =====
+  (function initClickSpark(opts) {
+    const {
+      sparkColor = '#ffffff',
+      sparkSize = 10,
+      sparkRadius = 15,
+      sparkCount = 8,
+      duration = 400,
+      easing = 'ease-out',
+      extraScale = 1.0
+    } = opts || {};
+
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:9999;';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function easeFunc(t) {
+      switch (easing) {
+        case 'linear': return t;
+        case 'ease-in': return t * t;
+        case 'ease-in-out': return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        default: return t * (2 - t);
+      }
+    }
+
+    let sparks = [];
+    let rafId = null;
+    function draw(timestamp) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      sparks = sparks.filter(spark => {
+        const elapsed = timestamp - spark.startTime;
+        if (elapsed >= duration) return false;
+        const progress = elapsed / duration;
+        const eased = easeFunc(progress);
+        const distance = eased * sparkRadius * extraScale;
+        const lineLength = sparkSize * (1 - eased);
+        const x1 = spark.x + distance * Math.cos(spark.angle);
+        const y1 = spark.y + distance * Math.sin(spark.angle);
+        const x2 = spark.x + (distance + lineLength) * Math.cos(spark.angle);
+        const y2 = spark.y + (distance + lineLength) * Math.sin(spark.angle);
+        ctx.strokeStyle = sparkColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        return true;
+      });
+      if (sparks.length) {
+        rafId = requestAnimationFrame(draw);
+      } else {
+        rafId = null; // idle until the next click instead of looping forever
+      }
+    }
+
+    document.addEventListener('click', e => {
+      const now = performance.now();
+      for (let i = 0; i < sparkCount; i++) {
+        sparks.push({ x: e.clientX, y: e.clientY, angle: (2 * Math.PI * i) / sparkCount, startTime: now });
+      }
+      if (rafId === null) rafId = requestAnimationFrame(draw);
+    });
+  })({
+    sparkColor: '#ffffff',
+    sparkSize: 10,
+    sparkRadius: 15,
+    sparkCount: 8,
+    duration: 400
+  });
+</script>
+
+<script>
+  // ===== GradualBlur: vanilla port =====
+  function createGradualBlur(container, opts) {
+    if (!container) return;
+    const {
+      position = 'bottom',
+      height = '6rem',
+      strength = 2,
+      divCount = 5,
+      exponential = true,
+      curve = 'bezier',
+      opacity = 1,
+      zIndex = 5
+    } = opts || {};
+
+    const curveFns = {
+      linear: p => p,
+      bezier: p => p * p * (3 - 2 * p),
+      'ease-in': p => p * p,
+      'ease-out': p => 1 - Math.pow(1 - p, 2),
+      'ease-in-out': p => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2)
+    };
+    const curveFunc = curveFns[curve] || curveFns.linear;
+    const direction = { top: 'to top', bottom: 'to bottom', left: 'to left', right: 'to right' }[position] || 'to bottom';
+    const isVertical = position === 'top' || position === 'bottom';
+
+    const computedStyle = getComputedStyle(container);
+    if (computedStyle.position === 'static') container.style.position = 'relative';
+    container.style.overflow = container.style.overflow || 'hidden';
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `position:absolute; pointer-events:none; z-index:${zIndex};` +
+      (isVertical ? `left:0; right:0; height:${height}; ${position}:0;` : `top:0; bottom:0; width:${height}; ${position}:0;`);
+    container.appendChild(wrap);
+
+    const increment = 100 / divCount;
+    for (let i = 1; i <= divCount; i++) {
+      let progress = curveFunc(i / divCount);
+      const blurValue = exponential
+        ? Math.pow(2, progress * 4) * 0.0625 * strength
+        : 0.0625 * (progress * divCount + 1) * strength;
+
+      const p1 = Math.round((increment * i - increment) * 10) / 10;
+      const p2 = Math.round(increment * i * 10) / 10;
+      const p3 = Math.round((increment * i + increment) * 10) / 10;
+      const p4 = Math.round((increment * i + increment * 2) * 10) / 10;
+      let gradient = `transparent ${p1}%, black ${p2}%`;
+      if (p3 <= 100) gradient += `, black ${p3}%`;
+      if (p4 <= 100) gradient += `, transparent ${p4}%`;
+
+      const div = document.createElement('div');
+      div.style.cssText = `position:absolute; inset:0; opacity:${opacity};` +
+        `-webkit-mask-image:linear-gradient(${direction}, ${gradient});` +
+        `mask-image:linear-gradient(${direction}, ${gradient});` +
+        `-webkit-backdrop-filter:blur(${blurValue.toFixed(3)}rem);` +
+        `backdrop-filter:blur(${blurValue.toFixed(3)}rem);`;
+      wrap.appendChild(div);
+    }
+  }
+
+  // Soft premium blur where the hero video bleeds into the page below.
+  createGradualBlur(document.getElementById('heroGradualBlur')?.parentElement, {
+    position: 'bottom',
+    height: '7rem',
+    strength: 2,
+    divCount: 5,
+    curve: 'bezier',
+    exponential: true,
+    opacity: 1
+  });
+</script>
+
+<script>
+  // ===== Lenis: ultra-smooth premium scroll =====
+  const lenis = new Lenis({
+    autoRaf: true,
+    autoToggle: true,
+    anchors: true,
+    allowNestedScroll: true,
+    naiveDimensions: true,
+    stopInertiaOnNavigate: true
+  });
+  window.lenis = lenis;
+
+  // Subtle premium parallax on elements marked with data-lenis-parallax,
+  // e.g. <div data-lenis-parallax="0.15">...</div> — driven by Lenis' own
+  // scroll event so it stays perfectly in sync with the smooth-scroll feel.
+  const parallaxEls = Array.from(document.querySelectorAll('[data-lenis-parallax]'));
+  if (parallaxEls.length) {
+    lenis.on('scroll', ({ scroll }) => {
+      parallaxEls.forEach(el => {
+        const speed = parseFloat(el.getAttribute('data-lenis-parallax')) || 0.1;
+        el.style.transform = `translate3d(0, ${scroll * speed * -0.1}px, 0)`;
+      });
+    });
+  }
+</script>
+
+<script>
+  // ===== Newsletter form: real client-side validation + success state =====
+  // Note: this is front-end only (no backend endpoint exists yet) — it
+  // validates the email and shows a success message, but doesn't actually
+  // send anything anywhere until you wire it to a real API/service.
+  (function () {
+    const form = document.getElementById('newsletterForm');
+    const email = document.getElementById('newsletterEmail');
+    const status = document.getElementById('newsletterStatus');
+    if (!form || !email || !status) return;
+    const defaultStatus = status.textContent;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const value = email.value.trim();
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      if (!valid) {
+        status.textContent = 'Please enter a valid email address.';
+        status.classList.add('text-red-200');
+        email.focus();
+        return;
+      }
+      status.classList.remove('text-red-200');
+      status.textContent = `Thanks — we'll be in touch at ${value}.`;
+      form.reset();
+      setTimeout(() => { status.textContent = defaultStatus; }, 6000);
+    });
+  })();
+
+  // ===== "Coming soon" toast for pages/features that don't exist yet =====
+  // Any link or button tagged data-soon="Label" shows a small toast instead
+  // of silently doing nothing.
+  (function () {
+    let toastEl = null;
+    let hideTimer = null;
+    function showToast(label) {
+      if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.setAttribute('role', 'status');
+        toastEl.style.cssText = 'position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:#0a1730; color:#fff; padding:0.75rem 1.25rem; border-radius:9999px; font-size:0.8rem; font-weight:500; box-shadow:0 10px 30px rgba(0,0,0,0.35); z-index:10000; opacity:0; transition:opacity .25s ease, transform .25s ease; pointer-events:none;';
+        document.body.appendChild(toastEl);
+      }
+      toastEl.textContent = `${label} is coming soon.`;
+      requestAnimationFrame(() => {
+        toastEl.style.opacity = '1';
+        toastEl.style.transform = 'translateX(-50%) translateY(0)';
+      });
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        toastEl.style.opacity = '0';
+        toastEl.style.transform = 'translateX(-50%) translateY(20px)';
+      }, 2200);
+    }
+    document.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-soon]');
+      if (!el) return;
+      e.preventDefault();
+      showToast(el.getAttribute('data-soon'));
+    });
+  })();
+</script>
+</body></html>

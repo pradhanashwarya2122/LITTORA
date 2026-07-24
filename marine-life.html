@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LITTORA - Marine Life Explorer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Sora:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/lenis@1.3.25/dist/lenis.css">
+<script src="https://unpkg.com/lenis@1.3.25/dist/lenis.min.js" defer></script>
+<style>
+  html,body{margin:0;padding:0;height:100%;}
+  body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;letter-spacing:-0.005em;}
+  h1,h2,h3{letter-spacing:-0.015em;}
+  .msym{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-family:'Material Symbols Outlined';}
+  .msym.fill{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+  #vanta-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;}
+  body,main,nav,aside{position:relative;z-index:1;}
+
+  .glass{background:rgba(10,25,40,0.38);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(133,148,149,0.22);box-shadow:0 4px 28px rgba(0,0,0,0.28);}
+  .glass-active{background:rgba(0,240,255,0.13);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid #00f0ff;box-shadow:inset 0 0 12px rgba(0,240,255,0.13),0 4px 20px rgba(0,0,0,0.28);}
+  .glass-btn{background:rgba(10,25,40,0.28);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(133,148,149,0.28);transition:all 0.2s ease;cursor:pointer;}
+  .glass-btn:hover{border-color:#00f0ff;box-shadow:0 0 10px rgba(0,240,255,0.3);}
+
+  .scroll{scroll-behavior:smooth;overscroll-behavior:contain;}
+  .scroll::-webkit-scrollbar{width:3px;}
+  .scroll::-webkit-scrollbar-track{background:transparent;}
+  .scroll::-webkit-scrollbar-thumb{background:#273647;border-radius:4px;}
+  .scroll::-webkit-scrollbar-thumb:hover{background:#849495;}
+
+  /* Bento glow */
+  :root{--g:0,240,255;}
+  .bc{position:relative;overflow:hidden;--gx:50%;--gy:50%;--gi:0;--gr:220px;transition:transform .25s ease,box-shadow .25s ease;}
+  .bc::after{content:'';position:absolute;inset:0;padding:1px;background:radial-gradient(var(--gr) circle at var(--gx) var(--gy),rgba(var(--g),calc(var(--gi)*.9)) 0%,rgba(var(--g),calc(var(--gi)*.3)) 35%,transparent 65%);border-radius:inherit;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;pointer-events:none;z-index:2;}
+  .bc:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.35),0 0 18px rgba(var(--g),.15);}
+  .bento-particle{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(var(--g),1);box-shadow:0 0 6px rgba(var(--g),.8);pointer-events:none;z-index:3;opacity:0;}
+  .global-spotlight{position:fixed;width:650px;height:650px;border-radius:50%;pointer-events:none;z-index:5;opacity:0;transform:translate(-50%,-50%);mix-blend-mode:screen;background:radial-gradient(circle,rgba(var(--g),.11) 0%,rgba(var(--g),.05) 22%,rgba(var(--g),.02) 42%,transparent 70%);}
+
+  /* status badges */
+  .badge-danger{color:#ffb4ab;background:rgba(255,180,171,.1);border:1px solid rgba(255,180,171,.3);}
+  .badge-warn{color:#FFA500;background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);}
+  .badge-safe{color:#00f0ff;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.3);}
+  .badge-vuln{color:#ffd700;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);}
+
+  /* sparkline canvas */
+  .sparkline-wrap{position:relative;}
+  canvas.spark{display:block;}
+
+  /* tabs */
+  .tab-btn{padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#b9cacb;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s ease;white-space:nowrap;}
+  .tab-btn.active{color:#00f0ff;border-bottom-color:#00f0ff;}
+  .tab-btn:hover:not(.active){color:#d4e4fa;}
+
+  /* video placeholder */
+  .vid-placeholder{background:linear-gradient(135deg,rgba(0,20,35,.9) 0%,rgba(0,30,50,.8) 100%);border:1px dashed rgba(0,240,255,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:rgba(0,240,255,.5);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;}
+  .vid-placeholder .play-icon{width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(0,240,255,.4);display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(0,240,255,.6);animation:play-icon-pulse 1.6s ease-in-out infinite;}
+  @keyframes play-icon-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(0,240,255,.35);}50%{transform:scale(1.08);box-shadow:0 0 0 8px rgba(0,240,255,0);}}
+
+  /* loading shimmer */
+  @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+  .shimmer{background:linear-gradient(90deg,rgba(255,255,255,.02) 0%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.02) 100%);background-size:400px 100%;animation:shimmer 1.5s infinite;}
+
+  /* sidebar item hover */
+  .sp-item{transition:background .15s ease,border-color .15s ease;cursor:pointer;}
+  .sp-item:hover{background:rgba(255,255,255,.04);}
+
+  /* map ocean overlay — accurate equirectangular world map, restyled to a premium deep-navy / turquoise glow finish */
+  .ocean-map{
+    background-color:#020c17;
+    background-image:radial-gradient(ellipse at 50% 115%, rgba(0,240,255,.16) 0%, transparent 55%);
+    background-size:100% 100%;
+    background-position:center;
+    background-repeat:no-repeat;
+    position:relative;overflow:hidden;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.55);
+  }
+  .world-map-svg{display:none;}
+  .ocean-map-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;}
+  .ocean-map-tint{position:absolute;inset:0;background:
+      linear-gradient(180deg,rgba(1,9,18,.15) 0%,rgba(1,9,18,.05) 55%,rgba(0,240,255,.10) 100%),
+      repeating-linear-gradient(0deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 1px,rgba(0,240,255,.025) 2px);
+    pointer-events:none;z-index:2;}
+  .map-dot{width:7px;height:7px;border-radius:50%;background:#eafffe;position:absolute;box-shadow:0 0 8px 2px #00f0ff,0 0 18px 6px rgba(0,240,255,.55);animation:pulse 2.2s ease-in-out infinite;transform:translate(-50%,-50%);cursor:pointer;z-index:4;}
+  .map-dot::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(0,240,255,.5);animation:ring 2.2s ease-out infinite;}
+  .map-label{position:absolute;transform:translate(-50%,-145%);font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:600;letter-spacing:.02em;color:#eafcff;background:rgba(2,14,26,.85);border:1px solid rgba(0,240,255,.35);padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:5;box-shadow:0 0 8px rgba(0,240,255,.15);}
+  @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1.4);opacity:.75}}
+  @keyframes ring{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.2);opacity:0}}
+
+  /* lifecycle timeline */
+  .lc-stage{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 8px;}
+  .lc-stage-icon{width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(0,240,255,.4);background:rgba(0,240,255,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:2;box-shadow:0 0 10px rgba(0,240,255,.15);}
+  .lc-stage-line{position:absolute;top:22px;left:-50%;width:100%;height:1.5px;background:linear-gradient(90deg,rgba(0,240,255,.05),rgba(0,240,255,.5),rgba(0,240,255,.05));z-index:1;}
+  .lc-stage:first-child .lc-stage-line{display:none;}
+
+  /* behavior trait cards */
+  .bt-card-icon{width:38px;height:38px;border-radius:10px;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* threat severity badges */
+  .sev-high{color:#ffb4ab;background:rgba(255,180,171,.1);border:1px solid rgba(255,180,171,.32);}
+  .sev-medium{color:#ffd700;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);}
+  .sev-low{color:#00f0ff;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.28);}
+
+  /* sparkline tooltip */
+  .spark-tooltip{position:absolute;pointer-events:none;background:rgba(2,14,26,.92);border:1px solid rgba(0,240,255,.4);border-radius:6px;padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#eafcff;white-space:nowrap;opacity:0;transform:translate(-50%,-115%);transition:opacity .12s ease;z-index:6;box-shadow:0 0 10px rgba(0,240,255,.2);}
+  .spark-tooltip.show{opacity:1;}
+
+  /* fullscreen map expand modal */
+  #map-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(1,6,12,.78);backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .28s ease;}
+  #map-modal-overlay.open{opacity:1;pointer-events:auto;}
+  #map-modal-panel{width:min(1080px,92vw);max-height:88vh;transform:scale(.96);transition:transform .28s ease;}
+  #map-modal-overlay.open #map-modal-panel{transform:scale(1);}
+  #map-modal-close{cursor:pointer;transition:all .2s ease;}
+  #map-modal-close:hover{color:#00f0ff;transform:rotate(90deg);}
+
+  /* fade/slide transition when switching species */
+  .fade-region{transition:opacity .26s ease, transform .26s ease;}
+  .fade-out{opacity:0!important;transform:translateY(8px)!important;}
+
+  #app-wrap{zoom:.8;width:100%;height:100%;display:flex;flex-direction:column;}
+
+  /* ============================================================
+     PREMIUM / APPLE-STYLE POLISH LAYER
+     ============================================================ */
+  :root{
+    --ease-out-expo:cubic-bezier(0.16,1,0.3,1);
+    --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+    --ease-smooth:cubic-bezier(0.4,0,0.2,1);
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  body{ animation: app-fade-in .7s var(--ease-out-expo) both; }
+  @keyframes app-fade-in{ from{ opacity:0; filter:blur(6px); } to{ opacity:1; filter:blur(0); } }
+
+  /* smoother, springier glass surfaces */
+  .glass, .glass-active{ transition: background .35s var(--ease-smooth), border-color .35s var(--ease-smooth), box-shadow .35s var(--ease-smooth), transform .35s var(--ease-out-expo); }
+
+  .glass-btn{ transition: all .3s var(--ease-out-expo); }
+  .glass-btn:hover{ transform:translateY(-1px) scale(1.05); box-shadow:0 6px 18px rgba(0,240,255,.22),0 0 12px rgba(0,240,255,.3); }
+  .glass-btn:active{ transform:scale(0.92); transition-duration:.12s; }
+
+  /* buttons / clickable elements get a tactile press */
+  button, .sp-item, .tab-btn, [onclick]{ transition: transform .28s var(--ease-out-expo), opacity .28s var(--ease-out-expo), color .28s var(--ease-out-expo), background .28s var(--ease-out-expo), border-color .28s var(--ease-out-expo), box-shadow .28s var(--ease-out-expo); }
+  button:active, .sp-item:active{ transform:scale(0.97); }
+
+  .sp-item{ transition:background .3s var(--ease-out-expo), transform .3s var(--ease-out-expo), border-color .3s var(--ease-out-expo); }
+  .sp-item:hover{ background:rgba(255,255,255,.055); transform:translateX(3px); }
+
+  /* bento cards — softer lift, longer spring-y settle */
+  .bc{ transition:transform .45s var(--ease-out-expo), box-shadow .45s var(--ease-out-expo); }
+  .bc:hover{ transform:translateY(-4px) scale(1.008); box-shadow:0 16px 40px rgba(0,0,0,.4),0 0 26px rgba(var(--g),.18); }
+
+  /* tabs: sliding pill indicator, smoother color settle */
+  .tab-row{ position:relative; }
+  .tab-btn{ transition:color .3s var(--ease-out-expo); position:relative; z-index:2; }
+  #tab-indicator{ position:absolute; bottom:0; height:2px; background:#00f0ff; box-shadow:0 0 8px rgba(0,240,255,.6); border-radius:2px; transition:left .38s var(--ease-out-expo), width .38s var(--ease-out-expo); z-index:1; }
+
+  /* badges: subtle hover glow */
+  .badge-danger,.badge-warn,.badge-safe,.badge-vuln,.sev-high,.sev-medium,.sev-low{ transition:all .3s var(--ease-out-expo); }
+
+  /* image / media reveal */
+  img{ transition:opacity .5s var(--ease-out-expo), transform .6s var(--ease-out-expo), filter .5s var(--ease-out-expo); }
+  .bc img, .sp-item img, #hero-ref-img, .ocean-map-img{ }
+  .bc:hover img{ transform:scale(1.035); }
+
+  /* modals: smoother spring scale + blur grow */
+  #map-modal-overlay, #trend-modal-overlay{ transition:opacity .4s var(--ease-out-expo), backdrop-filter .4s var(--ease-out-expo); }
+  #map-modal-panel, #trend-modal-panel{ transition:transform .45s var(--ease-spring), opacity .35s var(--ease-out-expo); }
+
+  /* population trend card — invite the click */
+  #trend-card{ cursor:pointer; }
+  #trend-card:hover .sparkline-wrap{ filter:brightness(1.08); }
+  #trend-expand-hint{ opacity:0; transition:opacity .3s var(--ease-out-expo); }
+  #trend-card:hover #trend-expand-hint{ opacity:1; }
+
+  /* fade region uses the smoother expo curve too */
+  .fade-region{ transition:opacity .38s var(--ease-out-expo), transform .38s var(--ease-out-expo); }
+
+  /* trend modal internals */
+  #trend-modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(1,6,12,.78);backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;}
+  #trend-modal-overlay.open{opacity:1;pointer-events:auto;}
+  #trend-modal-panel{width:min(900px,92vw);transform:scale(.94) translateY(6px);}
+  #trend-modal-overlay.open #trend-modal-panel{transform:scale(1) translateY(0);}
+  #trend-modal-close{cursor:pointer;transition:all .25s var(--ease-out-expo);}
+  #trend-modal-close:hover{color:#00f0ff;transform:rotate(90deg);}
+</style>
+<div id="map-modal-overlay" onclick="if(event.target===this) closeMapModal()">
+  <div id="map-modal-panel" class="glass rounded-2xl p-5">
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <div id="map-modal-title" style="font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:800;color:#d4e4fa;"></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#00f0ff;letter-spacing:.08em;">HABITAT & RANGE — GLOBAL VIEW</div>
+      </div>
+      <span id="map-modal-close" class="msym" style="font-size:26px;color:#b9cacb;" onclick="closeMapModal()">close</span>
+    </div>
+    <div id="map-modal-map" class="ocean-map rounded-xl relative" style="height:56vh;"></div>
+  </div>
+</div>
+<div id="trend-modal-overlay" onclick="if(event.target===this) closeTrendModal()">
+  <div id="trend-modal-panel" class="glass rounded-2xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <div id="trend-modal-title" style="font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:#d4e4fa;"></div>
+        <div id="trend-modal-sub" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#00f0ff;letter-spacing:.08em;">POPULATION TREND — 25 YEAR INDEX</div>
+      </div>
+      <span id="trend-modal-close" class="msym" style="font-size:26px;color:#b9cacb;" onclick="closeTrendModal()">close</span>
+    </div>
+    <div class="sparkline-wrap" style="height:44vh;position:relative;">
+      <canvas id="spark-canvas-large" class="spark" style="width:100%;height:44vh;cursor:crosshair;"></canvas>
+      <div id="spark-tooltip-large" class="spark-tooltip"></div>
+    </div>
+    <div class="flex justify-between mt-3" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#849495;">
+      <span>2000</span><span>2005</span><span>2010</span><span>2015</span><span>2020</span><span>2025</span>
+    </div>
+  </div>
+</div>
+<script id="tw-cfg">
+  tailwind.config={darkMode:"class",theme:{extend:{
+    colors:{
+      "outline-variant":"#3b494b","primary-container":"#00f0ff","on-surface-variant":"#b9cacb",
+      "background":"#051424","surface":"#051424","surface-container":"#122131",
+      "surface-container-low":"#0d1c2d","surface-container-lowest":"#010f1f",
+      "surface-container-high":"#1c2b3c","surface-container-highest":"#273647",
+      "surface-variant":"#273647","on-surface":"#d4e4fa","on-background":"#d4e4fa",
+      "error":"#ffb4ab","error-container":"#93000a","outline":"#849495"
+    },
+    fontFamily:{
+      brico:["Bricolage Grotesque","Sora","sans-serif"],
+      mono:["JetBrains Mono","monospace"],
+      sora:["Sora","sans-serif"]
+    }
+  }}}
+</script>
+</head>
+<body class="text-on-surface w-screen h-screen overflow-hidden" style="background:#051424;font-family:'Sora',sans-serif;">
+<div id="vanta-bg"></div>
+<div id="app-wrap">
+
+<!-- NAV -->
+<nav class="glass flex items-center justify-between px-6 py-2.5 border-x-0 border-t-0 flex-shrink-0" style="border-bottom:1px solid rgba(133,148,149,.2);position:relative;z-index:50;">
+  <div class="flex items-center gap-7">
+    <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:#d4e4fa;letter-spacing:-.03em;">LITTORA</div>
+    <div class="hidden lg:flex items-center gap-5">
+      <a href="index.html" class="flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">home</span>Home</a>
+      <a href="explore-ocean.html" class="flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">explore</span>Explore Ocean</a>
+      <a href="marine-life.html" class="flex items-center gap-1.5 text-xs font-bold border-b" style="color:#00f0ff;border-color:#00f0ff;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">sailing</span>Marine Life</a>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button class="glass-btn p-1.5 rounded-full"><span class="msym" style="font-size:18px;color:#b9cacb;">search</span></button>
+    <button class="glass-btn p-1.5 rounded-full"><span class="msym" style="font-size:18px;color:#b9cacb;">notifications</span></button>
+    <button class="glass-btn p-1.5 rounded-full" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><span class="msym" style="font-size:15px;color:#b9cacb;">person</span></button>
+  </div>
+</nav>
+
+<!-- MAIN 3-PANE LAYOUT -->
+<main class="flex flex-1 overflow-hidden" style="min-height:0;">
+
+<!-- ===== LEFT SIDEBAR ===== -->
+<aside class="glass flex flex-col flex-shrink-0 border-y-0 border-l-0" style="width:288px;">
+  <div class="p-4 border-b" style="border-color:rgba(133,148,149,.2);">
+    <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:700;color:#d4e4fa;letter-spacing:-.01em;margin-bottom:2px;">MARINE LIFE EXPLORER</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#b9cacb;letter-spacing:.07em;">Discover • Learn • Protect</div>
+    <div style="position:relative;margin-top:12px;">
+      <span class="msym" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:16px;color:#b9cacb;">search</span>
+      <input id="search-input" placeholder="Search species..." style="width:100%;background:rgba(18,33,49,.5);border:1px solid rgba(133,148,149,.25);border-radius:6px;padding:7px 9px 7px 32px;color:#d4e4fa;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#00f0ff'" onblur="this.style.borderColor='rgba(133,148,149,.25)'" oninput="filterSpecies(this.value)"/>
+    </div>
+    <div class="flex gap-1.5 mt-3 overflow-x-auto pb-1" style="scrollbar-width:none;">
+      <button onclick="filterCategory('All')" class="cat-btn active-cat" data-cat="All" style="flex-shrink:0;padding:3px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;cursor:pointer;background:rgba(0,240,255,.15);color:#00f0ff;border:1px solid rgba(0,240,255,.4);">All</button>
+      <button onclick="filterCategory('Mammals')" class="cat-btn" data-cat="Mammals" style="flex-shrink:0;padding:3px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;cursor:pointer;background:transparent;color:#b9cacb;border:1px solid rgba(133,148,149,.3);">Mammals</button>
+      <button onclick="filterCategory('Fish')" class="cat-btn" data-cat="Fish" style="flex-shrink:0;padding:3px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;cursor:pointer;background:transparent;color:#b9cacb;border:1px solid rgba(133,148,149,.3);">Fish</button>
+      <button onclick="filterCategory('Reptiles')" class="cat-btn" data-cat="Reptiles" style="flex-shrink:0;padding:3px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;cursor:pointer;background:transparent;color:#b9cacb;border:1px solid rgba(133,148,149,.3);">Reptiles</button>
+      <button onclick="filterCategory('Invertebrates')" class="cat-btn" data-cat="Invertebrates" style="flex-shrink:0;padding:3px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;cursor:pointer;background:transparent;color:#b9cacb;border:1px solid rgba(133,148,149,.3);">Invertebrates</button>
+    </div>
+  </div>
+  <div id="species-list" class="flex-1 scroll overflow-y-auto p-3 flex flex-col gap-2"></div>
+  <div class="glass p-4 m-3 rounded-xl border-y-0" style="border-top:2px solid rgba(0,240,255,.2);">
+    <div style="font-size:13px;font-weight:600;color:#d4e4fa;margin-bottom:4px;">Love Marine Life?</div>
+    <div style="font-size:11px;color:#b9cacb;margin-bottom:10px;line-height:1.5;">Learn how you can protect them for future generations.</div>
+    <button class="glass-btn flex items-center gap-2 px-3 py-1.5 rounded-lg" style="color:#00f0ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;">Take Action <span class="msym" style="font-size:14px;">arrow_forward</span></button>
+  </div>
+</aside>
+
+<!-- ===== CENTER DETAIL ===== -->
+<div class="flex-1 flex flex-col overflow-hidden relative">
+  <div id="detail-scroll" class="flex-1 scroll overflow-y-auto p-5">
+   <div id="detail-anim" class="fade-region flex flex-col gap-4">
+
+    <!-- HERO VIDEO BANNER -->
+    <div id="hero-banner" class="relative rounded-2xl overflow-hidden flex-shrink-0" style="height:260px;border:1px solid rgba(133,148,149,.2);box-shadow:0 8px 40px rgba(0,0,0,.5);">
+      <!-- video element — src swapped per species -->
+      <video id="species-video" class="absolute inset-0 w-full h-full object-cover" muted loop playsinline preload="auto" style="opacity:.55;"></video>
+      <!-- reference image shown behind placeholder (swap per species) -->
+      <img id="hero-ref-img" class="absolute inset-0 w-full h-full object-cover" style="opacity:.5;" alt="reference" loading="lazy" decoding="async"/>
+      <!-- overlay gradient -->
+      <div class="absolute inset-0" style="background:radial-gradient(ellipse at 20% 20%,rgba(0,240,255,.08),transparent 55%),linear-gradient(180deg,rgba(2,10,20,.4) 0%,rgba(2,10,20,.2) 40%,rgba(2,10,20,.9) 100%);"></div>
+      <!-- video placeholder shown when no src -->
+      <div id="vid-placeholder" class="absolute inset-0 vid-placeholder">
+        <div class="play-icon"><span class="msym" style="font-size:22px;">play_arrow</span></div>
+      </div>
+      <!-- top bar -->
+      <div class="absolute top-0 left-0 right-0 flex justify-between items-center p-4 z-10">
+        <button onclick="goBack()" class="glass-btn flex items-center gap-2 px-3 py-1.5 rounded-lg" style="color:#d4e4fa;font-family:'JetBrains Mono',monospace;font-size:11px;"><span class="msym" style="font-size:15px;">arrow_back</span>Back to List</button>
+        <div class="flex items-center gap-2">
+          <span id="vid-tag" class="px-2 py-0.5 rounded" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#00f0ff;background:rgba(0,10,20,.55);border:1px solid rgba(0,240,255,.3);backdrop-filter:blur(8px);">VIDEO</span>
+          <button class="glass-btn flex items-center gap-2 px-3 py-1.5 rounded-lg" style="color:#d4e4fa;font-family:'JetBrains Mono',monospace;font-size:11px;"><span class="msym" style="font-size:15px;">favorite_border</span>Watchlist</button>
+        </div>
+      </div>
+      <!-- hero text -->
+      <div class="absolute bottom-0 left-0 p-5 z-10">
+        <h1 id="hero-name" style="font-family:'Bricolage Grotesque',sans-serif;font-size:52px;font-weight:800;line-height:1;color:#fff;text-shadow:0 2px 24px rgba(0,0,0,.7);letter-spacing:-.02em;"></h1>
+        <div id="hero-latin" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-style:italic;color:rgba(255,255,255,.7);margin-top:4px;"></div>
+        <div id="hero-tagline" style="font-size:13px;color:rgba(255,255,255,.65);margin-top:6px;max-width:480px;line-height:1.55;"></div>
+        <div id="hero-status-badge" class="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg glass" style="border:none;"></div>
+      </div>
+    </div>
+
+    <!-- STATS STRIP -->
+    <div id="stats-strip" class="bc glass rounded-xl p-6 grid grid-cols-5 gap-4" style="flex-shrink:0;"></div>
+
+    <!-- TABS -->
+    <div id="tab-row" class="tab-row flex gap-6 border-b pb-0" style="border-color:rgba(133,148,149,.2);">
+      <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview',this)">Overview</button>
+      <button class="tab-btn" data-tab="habitat" onclick="switchTab('habitat',this)">Habitat & Range</button>
+      <button class="tab-btn" data-tab="behavior" onclick="switchTab('behavior',this)">Behavior</button>
+      <button class="tab-btn" data-tab="lifecycle" onclick="switchTab('lifecycle',this)">Life Cycle</button>
+      <button class="tab-btn" data-tab="threats" onclick="switchTab('threats',this)">Threats</button>
+      <div id="tab-indicator"></div>
+    </div>
+
+    <!-- TAB CONTENT -->
+    <div id="tab-overview" class="grid grid-cols-3 gap-4">
+      <div class="bc glass rounded-xl p-4 col-span-1">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">ABOUT</div>
+        <div id="about-text" style="font-size:13px;color:#b9cacb;line-height:1.65;"></div>
+      </div>
+      <div class="bc glass rounded-xl p-4 col-span-1">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">KEY CHARACTERISTICS</div>
+        <ul id="key-chars" class="flex flex-col gap-2.5"></ul>
+      </div>
+      <div class="bc glass rounded-xl p-4 col-span-1" style="border-top:2px solid #00f0ff;">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">FUN FACT</div>
+        <div id="fun-fact" style="font-size:13px;color:#b9cacb;line-height:1.65;"></div>
+      </div>
+    </div>
+    <div id="tab-habitat" class="hidden grid grid-cols-3 gap-4">
+      <div class="bc glass rounded-xl p-5 col-span-2">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">HABITAT & RANGE</div>
+        <div id="habitat-text" style="font-size:13px;color:#b9cacb;line-height:1.7;margin-bottom:14px;"></div>
+        <div id="habitat-map" class="ocean-map rounded-lg relative" style="height:200px;cursor:pointer;" onclick="openMapModal()"><img class="ocean-map-img" src="public/seaanimalsinfo/worldmap.png" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div></div>
+      </div>
+      <div class="bc glass rounded-xl p-4 col-span-1">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">KNOWN LOCATIONS</div>
+        <div id="habitat-locations" class="flex flex-col gap-2"></div>
+      </div>
+    </div>
+    <div id="tab-behavior" class="hidden flex flex-col gap-4">
+      <div class="bc glass rounded-xl p-5">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">BEHAVIOR & DIET</div>
+        <div id="behavior-text" style="font-size:13px;color:#b9cacb;line-height:1.7;"></div>
+      </div>
+      <div id="behavior-traits" class="grid grid-cols-3 gap-4"></div>
+    </div>
+    <div id="tab-lifecycle" class="hidden flex flex-col gap-4">
+      <div class="bc glass rounded-xl p-5">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">LIFE CYCLE</div>
+        <div id="lifecycle-text" style="font-size:13px;color:#b9cacb;line-height:1.7;"></div>
+      </div>
+      <div class="bc glass rounded-xl p-5">
+        <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:16px;">STAGES</div>
+        <div id="lifecycle-timeline" class="flex items-stretch gap-0"></div>
+      </div>
+    </div>
+    <div id="tab-threats" class="hidden">
+      <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">THREATS</div>
+      <div id="threats-grid" class="grid grid-cols-2 gap-3"></div>
+    </div>
+   </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="glass flex items-center justify-between px-6 py-3 border-x-0 border-b-0" style="border-top:1px solid rgba(133,148,149,.2);flex-shrink:0;">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#d4e4fa;">Every species plays a role.</div>
+      <div style="font-size:11px;color:#b9cacb;">Every action makes a difference.</div>
+    </div>
+    <div class="flex gap-10">
+      <div class="text-center">
+        <div class="msym" style="color:#00f0ff;font-size:22px;">shield</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#d4e4fa;">128</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#b9cacb;letter-spacing:.07em;">PROTECTED</div>
+      </div>
+      <div class="text-center">
+        <div class="msym" style="color:#00f0ff;font-size:22px;">water</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#d4e4fa;">42</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#b9cacb;letter-spacing:.07em;">PROJECTS</div>
+      </div>
+      <div class="text-center">
+        <div class="msym" style="color:#00f0ff;font-size:22px;">group</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#d4e4fa;">18.6K</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#b9cacb;letter-spacing:.07em;">INVOLVED</div>
+      </div>
+    </div>
+    <button class="glass-btn flex items-center gap-2 px-4 py-2 rounded-xl" style="color:#00f0ff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;">Support Conservation <span class="msym" style="font-size:14px;">favorite</span></button>
+  </div>
+</div>
+
+<!-- ===== RIGHT TELEMETRY ===== -->
+<aside class="glass flex flex-col scroll overflow-y-auto border-y-0 border-r-0 flex-shrink-0 p-4" style="width:320px;">
+ <div id="side-anim" class="fade-region flex flex-col gap-4">
+  <!-- MAP -->
+  <div class="bc glass rounded-xl p-4">
+    <div class="flex justify-between items-center mb-3">
+      <div style="font-size:12px;font-weight:700;color:#d4e4fa;letter-spacing:-.01em;">Habitat & Range</div>
+      <span id="map-expand-btn" class="msym" style="font-size:14px;color:#b9cacb;cursor:pointer;" onclick="openMapModal()" title="Expand map">open_in_full</span>
+    </div>
+    <div id="species-map" class="ocean-map rounded-lg mb-3 relative" style="height:110px;cursor:pointer;" onclick="openMapModal()"><img class="ocean-map-img" src="public/seaanimalsinfo/worldmap.png" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div></div>
+    <div class="flex gap-4" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#b9cacb;">
+      <div class="flex items-center gap-1.5"><div style="width:7px;height:7px;border-radius:50%;background:#00f0ff;box-shadow:0 0 6px #00f0ff;"></div>Primary Habitat</div>
+      <div class="flex items-center gap-1.5"><div style="width:14px;height:1.5px;background:linear-gradient(90deg,#00f0ff,transparent);border-radius:2px;"></div>Migration</div>
+    </div>
+  </div>
+
+  <!-- POPULATION TREND -->
+  <div id="trend-card" class="bc glass rounded-xl p-4" onclick="openTrendModal()">
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex items-center gap-1.5">
+        <div style="font-size:12px;font-weight:700;color:#d4e4fa;">Population Trend</div>
+        <span id="trend-expand-hint" class="msym" style="font-size:14px;color:#849495;">open_in_full</span>
+      </div>
+      <div id="trend-label" class="flex items-center gap-1" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00f0ff;"></div>
+    </div>
+    <div class="sparkline-wrap" style="height:90px;position:relative;">
+      <canvas id="spark-canvas" class="spark" style="width:100%;height:90px;cursor:pointer;"></canvas>
+      <div id="spark-tooltip" class="spark-tooltip"></div>
+    </div>
+    <div class="flex justify-between mt-1" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#849495;">
+      <span>2000</span><span>2005</span><span>2010</span><span>2015</span><span>2020</span><span>2025</span>
+    </div>
+  </div>
+
+  <!-- SIGHTINGS -->
+  <div class="bc glass rounded-xl p-4">
+    <div class="flex justify-between items-center mb-3">
+      <div style="font-size:12px;font-weight:700;color:#d4e4fa;">Recent Sightings</div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#00f0ff;cursor:pointer;">View All →</span>
+    </div>
+    <div id="sightings-grid" class="grid grid-cols-2 gap-2"></div>
+  </div>
+
+  <!-- QUICK FACTS TABLE -->
+  <div class="bc glass rounded-xl p-4">
+    <div style="font-size:12px;font-weight:700;color:#d4e4fa;margin-bottom:10px;">Quick Reference</div>
+    <div id="quick-facts" class="flex flex-col gap-2"></div>
+  </div>
+ </div>
+</aside>
+
+</main>
+</div><!-- end app-wrap -->
+
+<script>
+// ============================================================
+//  SPECIES DATA
+// ============================================================
+const SPECIES = [
+  {
+    id:'sea-turtle',
+    name:'Sea Turtle',
+    latin:'Cheloniidae',
+    category:'Reptiles',
+    thumb:'https://placehold.co/96x96/03101f/00f0ff?text=ST',
+    statusKey:'Endangered',
+    statusClass:'badge-danger',
+    tagline:'Ancient mariners of the ocean, sea turtles have glided through these waters for over 100 million years.',
+    about:'Sea turtles are large marine reptiles that belong to the order Testudines. Seven species are recognised, all critically important to marine and coastal ecosystems. They connect habitats ranging from open ocean to coral reefs to seagrass beds.',
+    habitat:'Found in every ocean except the Arctic. Sea turtles live in tropical and subtropical waters between 30°N and 30°S, returning to tropical beaches to nest. Key habitats include the Great Barrier Reef, Caribbean Sea, Gulf of Mexico and Indian Ocean.',
+    behavior:'Primarily herbivorous (green turtle) or carnivorous (leatherback). They travel thousands of kilometres between feeding and nesting grounds using Earth\'s magnetic field for navigation. Males rarely, if ever, leave the water.',
+    lifecycle:'Females lay 50–200 eggs per clutch, 2–8 times per season. Eggs incubate 45–70 days. Hatchlings race to the sea, entering an "lost years" phase drifting in ocean currents. Sexual maturity takes 15–50 years.',
+    funFact:'Female sea turtles return to the exact beach where they were born to lay their own eggs — sometimes navigating thousands of kilometres with pinpoint accuracy.',
+    chars:['Streamlined, tear-drop shaped shell (carapace)','Large front flippers for powerful propulsion','Cannot retract head into shell','Breathe air — dive up to 7 hours','Navigate using Earth\'s geomagnetic field'],
+    stats:{length:'80 – 120 cm',weight:'45 – 160 kg',lifespan:'50 – 80 yrs',diet:'Omnivore / Herbivore',depth:'Up to 960 m'},
+    trendDir:'stable',
+    trendData:[28,22,18,20,25,30,29,33,35,38],
+    behaviorTraits:{feeding:'Herbivorous (green turtle) or carnivorous (leatherback), grazing seagrass, algae, jellyfish and sponges.',social:'Largely solitary; only congregates loosely at rich feeding grounds or nesting beaches.',activity:'Diurnal forager capable of resting motionless underwater and holding its breath for up to 7 hours.'},
+    lifecycleStages:[
+      {icon:'egg',label:'Nesting & Eggs',desc:'Females haul ashore at night to lay 50–200 eggs per clutch, 2–8 times a season.'},
+      {icon:'child_care',label:'Hatchlings',desc:'After 45–70 days, hatchlings dig free and race to the sea under cover of darkness.'},
+      {icon:'waves',label:'"Lost Years"',desc:'Juveniles drift with ocean currents for years, feeding and growing far from shore.'},
+      {icon:'tsunami',label:'Adult & Return',desc:'After 15–50 years, mature adults return to their natal beach to nest.'}
+    ],
+    threats:[
+      {icon:'delete',label:'Plastic Pollution',severity:'High',desc:'Mistaken for jellyfish, plastic debris causes fatal blockages and entanglement.'},
+      {icon:'construction',label:'Habitat Loss',severity:'High',desc:'Coastal development destroys nesting beaches and artificial light disorients hatchlings.'},
+      {icon:'crisis_alert',label:'Illegal Poaching',severity:'Medium',desc:'Eggs, meat and shells are still illegally harvested across parts of their range.'},
+      {icon:'thermostat',label:'Climate Change',severity:'Medium',desc:'Rising sand temperatures skew hatchling sex ratios heavily toward females.'}
+    ],
+    sightings:['Great Barrier Reef','Andaman Sea','Maldives','Costa Rica'],
+    mapDots:[{x:'91.0%',y:'60.2%',label:'Great Barrier Reef'},{x:'76.4%',y:'44.4%',label:'Andaman Sea'},{x:'70.3%',y:'48.2%',label:'Maldives'},{x:'26.7%',y:'44.6%',label:'Costa Rica'}],
+    heroImageRef:'public/seaanimalsinfo/turtle.png',
+    sightingsImages:[
+      'public/seaanimalsinfo/barrierreef.jpg',
+      'public/seaanimalsinfo/andamansea_.jpg',
+      'public/seaanimalsinfo/Maldives.jpg',
+      'public/seaanimalsinfo/costarica.jpg'
+    ],
+    videoLabel:'Sea Turtle Documentary Clip',
+    videoSrc:'public/seaanimalsinfo/turtle.mp4',
+  },
+  {
+    id:'blue-whale',
+    name:'Blue Whale',
+    latin:'Balaenoptera musculus',
+    category:'Mammals',
+    thumb:'https://placehold.co/96x96/03101f/00d4ff?text=BW',
+    statusKey:'Endangered',
+    statusClass:'badge-danger',
+    tagline:'The largest animal ever known to have existed on Earth — a living superlative of evolution.',
+    about:'The blue whale is the largest animal ever known to exist on Earth. Adults can reach lengths of 30 metres and weigh up to 180 tonnes. Despite their enormous size, they feed almost exclusively on tiny krill. Once hunted to near extinction, populations are slowly recovering.',
+    habitat:'Found in all the world\'s oceans except the Arctic. They migrate between cold, nutrient-rich feeding grounds in polar summers and warm equatorial breeding grounds in winter. The Antarctic is a critical feeding zone.',
+    behavior:'Solitary or in small pairs. Communicate via low-frequency vocalisations audible up to 1,600 km away. Feed by lunge-filtering — engulfing enormous clouds of krill. A single adult eats up to 4 tonnes of krill per day.',
+    lifecycle:'Females give birth every 2–3 years to a single calf after 10–12 months gestation. Calves gain up to 90 kg per day, weaned after 7–8 months. Sexual maturity reached at 5–10 years. Lifespan estimated at 80–90 years.',
+    funFact:'A blue whale\'s heart is roughly the size of a small car — about 180 kg — and its heartbeat can be detected from 3 km away.',
+    chars:['Can reach 30 m in length and 180 tonnes','Heart the size of a small car','Produces loudest biological sound on Earth','Feeds exclusively on krill','Dives up to 500 m, holding breath for 20+ minutes'],
+    stats:{length:'24 – 30 m',weight:'100 – 180 t',lifespan:'80 – 90 yrs',diet:'Krill (filter feeder)',depth:'Up to 500 m'},
+    trendDir:'increasing',
+    trendData:[10,11,13,12,15,16,18,20,22,24],
+    behaviorTraits:{feeding:'Lunge-feeds through dense krill swarms, engulfing up to 4 tonnes of prey a day.',social:'Mostly solitary or in loose pairs, keeping contact over vast distances via low-frequency calls.',activity:'Migrates thousands of kilometres yearly between polar feeding grounds and tropical breeding waters.'},
+    lifecycleStages:[
+      {icon:'egg',label:'Gestation',desc:'A single calf develops over 10–12 months inside the mother.'},
+      {icon:'child_care',label:'Nursing Calf',desc:'Calves gain up to 90 kg per day on rich milk, weaned at 7–8 months.'},
+      {icon:'waves',label:'Juvenile Growth',desc:'Young whales grow rapidly, migrating with adults to learn feeding routes.'},
+      {icon:'tsunami',label:'Maturity',desc:'Sexual maturity arrives at 5–10 years; lifespan can reach 80–90 years.'}
+    ],
+    threats:[
+      {icon:'sailing',label:'Ship Strikes',severity:'High',desc:'Collisions with large vessels are a leading cause of death in busy shipping lanes.'},
+      {icon:'phishing',label:'Fishing Nets',severity:'Medium',desc:'Entanglement in nets and lines can cause injury, exhaustion and drowning.'},
+      {icon:'thermostat',label:'Climate Change',severity:'Medium',desc:'Warming oceans are shifting krill populations away from traditional feeding grounds.'},
+      {icon:'volume_up',label:'Ocean Noise',severity:'Low',desc:'Shipping and sonar noise can drown out long-distance communication calls.'}
+    ],
+    sightings:['Antarctic Ocean','Sri Lanka Coast','Gulf of California','Azores Islands'],
+    mapDots:[{x:'33.9%',y:'85.0%',label:'Antarctic Ocean'},{x:'72.4%',y:'45.8%',label:'Sri Lanka Coast'},{x:'19.0%',y:'34.7%',label:'Gulf of California'},{x:'42.4%',y:'28.5%',label:'Azores Islands'}],
+    heroImageRef:'public/seaanimalsinfo/whale.png',
+    sightingsImages:[
+      'public/seaanimalsinfo/antartica.jpg',
+      'public/seaanimalsinfo/srilanka.jpg',
+      'public/seaanimalsinfo/gulfcalifornia.jpg',
+      'public/seaanimalsinfo/azores.jpg'
+    ],
+    videoLabel:'Blue Whale Encounter Footage',
+    videoSrc:'public/seaanimalsinfo/whale.mp4',
+  },
+  {
+    id:'dolphin',
+    name:'Bottlenose Dolphin',
+    latin:'Tursiops truncatus',
+    category:'Mammals',
+    thumb:'https://placehold.co/96x96/03101f/00f0ff?text=BD',
+    statusKey:'Least Concern',
+    statusClass:'badge-safe',
+    tagline:'Among the most intelligent, social and adaptable animals in the ocean.',
+    about:'Bottlenose dolphins are highly intelligent cetaceans known for their playful behaviour and sophisticated communication. They live in complex social groups called pods and are one of the few animals demonstrated to have self-awareness, problem-solving and tool use.',
+    habitat:'Found in tropical and temperate oceans worldwide, from open seas to coastal bays, estuaries and even rivers. They thrive in waters up to 200 m deep and are frequently seen in coastal zones, harbours and around human activity.',
+    behavior:'Apex predators of coastal systems, hunting fish, squid and crustaceans. Use echolocation to detect prey with extraordinary precision. Known to use sponges as tools for foraging, pass culture between generations and form long-term friendships.',
+    lifecycle:'Gestation lasts 12 months. Calves stay with mothers for 3–6 years, learning complex social and hunting skills. Sexual maturity at 5–13 years. Pod members cooperate to protect young, herd fish and even support sick companions.',
+    funFact:'Dolphins sleep with one half of their brain at a time — called unihemispheric slow-wave sleep — keeping one eye open to watch for predators.',
+    chars:['Sophisticated echolocation system','Highly complex social structure','Demonstrated self-recognition in mirrors','Tool use documented in wild','Capable of mimicking human sounds'],
+    stats:{length:'2 – 4 m',weight:'150 – 650 kg',lifespan:'40 – 60 yrs',diet:'Fish, squid, crustaceans',depth:'Up to 200 m'},
+    trendDir:'stable',
+    trendData:[60,58,62,65,63,68,70,72,74,76],
+    behaviorTraits:{feeding:'Cooperative hunter using precision echolocation, and even sponge tool-use for foraging.',social:'Lives in complex fission-fusion pods with lifelong bonds and shared cultural knowledge.',activity:'Active day and night, sleeping with half its brain at a time to stay alert to predators.'},
+    lifecycleStages:[
+      {icon:'egg',label:'Gestation',desc:'Pregnancy lasts around 12 months before a single calf is born.'},
+      {icon:'child_care',label:'Calf Rearing',desc:'Calves nurse and stay close to their mothers for 3–6 years, learning to hunt.'},
+      {icon:'waves',label:'Social Learning',desc:'Juveniles absorb pod culture — signature whistles, hunting styles and alliances.'},
+      {icon:'tsunami',label:'Maturity',desc:'Sexual maturity arrives at 5–13 years within a stable, cooperative pod.'}
+    ],
+    threats:[
+      {icon:'phishing',label:'Bycatch',severity:'High',desc:'Accidental entanglement in commercial fishing gear remains a top cause of death.'},
+      {icon:'delete',label:'Pollution',severity:'Medium',desc:'Chemical runoff and microplastics accumulate in tissue over a long lifespan.'},
+      {icon:'thermostat',label:'Climate Change',severity:'Low',desc:'Shifting prey distributions are altering traditional coastal ranges.'},
+      {icon:'volume_up',label:'Sonar Noise',severity:'Medium',desc:'Military and shipping noise can interfere with echolocation and communication.'}
+    ],
+    sightings:['Gulf of Mexico','Mediterranean Sea','Shark Bay Australia','Moray Firth UK'],
+    mapDots:[{x:'25.0%',y:'36.1%',label:'Gulf of Mexico'},{x:'55.0%',y:'30.6%',label:'Mediterranean Sea'},{x:'81.5%',y:'64.3%',label:'Shark Bay Australia'},{x:'48.9%',y:'17.9%',label:'Moray Firth UK'}],
+    heroImageRef:'public/seaanimalsinfo/dolphin.png',
+    sightingsImages:[
+      'public/seaanimalsinfo/gulfmexico.jpg',
+      'public/seaanimalsinfo/mediterranean.jpg',
+      'https://placehold.co/200x140/03101f/00f0ff?text=Shark+Bay+Australia',
+      'public/seaanimalsinfo/morayfirth.jpg'
+    ],
+    videoLabel:'Dolphin Pod Underwater',
+    videoSrc:'public/seaanimalsinfo/dolphin.mp4',
+  },
+  {
+    id:'manta-ray',
+    name:'Manta Ray',
+    latin:'Mobula birostris',
+    category:'Fish',
+    thumb:'https://placehold.co/96x96/03101f/ffd700?text=MR',
+    statusKey:'Vulnerable',
+    statusClass:'badge-vuln',
+    tagline:'Gentle giants of the open ocean, graceful filter-feeders with one of the largest brains of any fish.',
+    about:'Giant manta rays are the world\'s largest rays, with wingspan exceeding 7 metres. Despite their imposing size, they are harmless filter-feeders subsisting on plankton. They are exceptionally intelligent for fish, with the largest brain-to-body ratio of any cold-blooded vertebrate.',
+    habitat:'Found in tropical, subtropical and temperate ocean waters worldwide. Often congregate at productive upwelling zones, coral reefs and seamounts where plankton blooms are dense. The Maldives, Coral Triangle and Yucatán coast are key aggregation sites.',
+    behavior:'Filter feed by swimming with cephalic fins unfurled, funnelling water and plankton into their large mouths. Known to visit cleaning stations on coral reefs — hovering motionless for minutes while fish remove parasites. Capable of breaching dramatically.',
+    lifecycle:'Mantas produce one pup every 2–5 years after a 12–13 month gestation. Pups are born live, rolled up like a burrito, then unfurl immediately and swim independently. Slow reproduction makes populations extremely vulnerable to overexploitation.',
+    funFact:'Manta rays visit "cleaning stations" on coral reefs and appear to queue patiently, hovering while cleaner fish remove parasites from their gills and skin.',
+    chars:['Wingspan of up to 7 metres','Largest brain of any fish relative to body mass','No defensive spine — completely harmless','Filter-feed on microscopic plankton','Known to approach divers with apparent curiosity'],
+    stats:{length:'4 – 7 m wingspan',weight:'1,350 – 2,000 kg',lifespan:'40+ yrs',diet:'Zooplankton, krill',depth:'Up to 1,000 m'},
+    trendDir:'declining',
+    trendData:[75,70,65,60,55,50,47,44,40,38],
+    behaviorTraits:{feeding:'Filter-feeds by unfurling cephalic fins, funnelling plankton-rich water into its mouth.',social:'Loosely social, gathering seasonally at cleaning stations and feeding aggregations.',activity:'Cruises continuously through the water column and visits reefs to be cleaned of parasites.'},
+    lifecycleStages:[
+      {icon:'egg',label:'Gestation',desc:'A single pup develops over 12–13 months inside the mother.'},
+      {icon:'child_care',label:'Live Birth',desc:'The pup is born rolled up, then unfurls and swims independently within moments.'},
+      {icon:'waves',label:'Slow Growth',desc:'Juveniles grow slowly, spending years at aggregation sites before maturing.'},
+      {icon:'tsunami',label:'Long Maturity',desc:'Reproduces only once every 2–5 years, making populations very slow to recover.'}
+    ],
+    threats:[
+      {icon:'phishing',label:'Targeted Fishing',severity:'High',desc:'Gill plates are sought for traditional medicine markets, driving direct hunting.'},
+      {icon:'delete',label:'Bycatch',severity:'High',desc:'Frequently caught unintentionally in nets meant for other species.'},
+      {icon:'thermostat',label:'Bleaching',severity:'Medium',desc:'Coral bleaching degrades the cleaning stations and reefs mantas depend on.'},
+      {icon:'construction',label:'Habitat Loss',severity:'Medium',desc:'Coastal development disrupts key feeding and aggregation sites.'}
+    ],
+    sightings:['Maldives','Coral Triangle','Socorro Island','Yucatán Mexico'],
+    mapDots:[{x:'70.3%',y:'48.2%',label:'Maldives'},{x:'86.1%',y:'51.1%',label:'Coral Triangle'},{x:'19.2%',y:'39.6%',label:'Socorro Island'},{x:'25.7%',y:'38.6%',label:'Yucatan Mexico'}],
+    heroImageRef:'public/seaanimalsinfo/mantle.png',
+    sightingsImages:[
+      'public/seaanimalsinfo/Maldives.jpg',
+      'public/seaanimalsinfo/coraltriangle.jpg',
+      'public/seaanimalsinfo/socorro.jpg',
+      'public/seaanimalsinfo/yucatan.jpg'
+    ],
+    videoLabel:'Manta Ray Cleaning Station',
+    videoSrc:'public/seaanimalsinfo/mantle.mp4',
+  },
+  {
+    id:'jellyfish',
+    name:'Moon Jellyfish',
+    latin:'Aurelia aurita',
+    category:'Invertebrates',
+    thumb:'https://placehold.co/96x96/03101f/a855f7?text=MJ',
+    statusKey:'Least Concern',
+    statusClass:'badge-safe',
+    tagline:'Alien-like drifters that have survived five mass extinctions without a brain, heart or bones.',
+    about:'Moon jellyfish are among the most abundant and widespread medusozoa on Earth. Their translucent bell and characteristic four-lobed gonads make them instantly recognisable. They are amongst the oldest multi-organ animals, unchanged in design for over 500 million years.',
+    habitat:'Found in coastal waters worldwide, from the Arctic to tropics. They thrive in harbours, bays and estuaries — often blooming in enormous swarms when water temperatures rise. Climate change and eutrophication are expanding their range and bloom frequency.',
+    behavior:'Largely passive drifters guided by ocean currents — true plankton. They use weak pulsing motion to orient vertically in the water column. Tentacles capture copepods, fish eggs and small crustaceans on contact via nematocysts.',
+    lifecycle:'Complex alternating life cycle: medusa (free-swimming adult) → polyp (benthic) → strobila → ephyra → medusa. Adults live 6–12 months. Polyps can survive for years and regenerate entire medusae from a remnant fragment.',
+    funFact:'Jellyfish are 95% water — with no brain, no heart, no blood and no bones. If you take one out of the ocean, it collapses completely.',
+    chars:['96% water by mass','No brain, heart or lungs','500-million-year evolutionary lineage','Bioluminescent in many species','Can revert to juvenile polyp form (some species)'],
+    stats:{length:'25 – 40 cm bell',weight:'Negligible',lifespan:'6 – 12 months',diet:'Zooplankton, fish eggs',depth:'Surface to 1,000 m'},
+    trendDir:'increasing',
+    trendData:[40,42,45,48,52,58,65,70,78,85],
+    behaviorTraits:{feeding:'Passive predator — nematocyst-laden tentacles capture plankton drifting past.',social:'No social structure; often forms massive blooms of thousands of individuals.',activity:'Pulses rhythmically to stay near the surface, drifting with currents and tides.'},
+    lifecycleStages:[
+      {icon:'egg',label:'Planula Larva',desc:'Fertilised eggs develop into free-swimming larvae within hours.'},
+      {icon:'child_care',label:'Polyp Stage',desc:'Larvae settle and grow into stationary, plant-like polyps that can live for years.'},
+      {icon:'waves',label:'Strobilation',desc:'Polyps stack and bud off small ephyrae — juvenile jellyfish — in large numbers.'},
+      {icon:'tsunami',label:'Medusa (Adult)',desc:'Ephyrae mature into free-swimming medusae, living just 6–12 months.'}
+    ],
+    threats:[
+      {icon:'thermostat',label:'Ocean Warming',severity:'Low',desc:'Warmer waters extend the bloom season and expand their range poleward.'},
+      {icon:'science',label:'Eutrophication',severity:'Low',desc:'Nutrient-rich runoff fuels the algal blooms that jellyfish thrive on.'},
+      {icon:'sailing',label:'Ship Ballast',severity:'Medium',desc:'Ballast water transports polyps and larvae to new, non-native regions.'},
+      {icon:'delete',label:'Pollution',severity:'Low',desc:'Tolerant of degraded water quality where other species struggle to survive.'}
+    ],
+    sightings:['North Sea','Baltic Sea','Chesapeake Bay','Tokyo Bay Japan'],
+    mapDots:[{x:'50.8%',y:'18.9%',label:'North Sea'},{x:'55.6%',y:'17.8%',label:'Baltic Sea'},{x:'28.8%',y:'29.2%',label:'Chesapeake Bay'},{x:'88.8%',y:'30.3%',label:'Tokyo Bay Japan'}],
+    heroImageRef:'public/seaanimalsinfo/jellyfish_.png',
+    sightingsImages:[
+      'public/seaanimalsinfo/northsea_.jpg',
+      'public/seaanimalsinfo/baltiksea.jpg',
+      'public/seaanimalsinfo/Chesapeake.jpg',
+      'public/seaanimalsinfo/tokyobay_.jpg'
+    ],
+    videoLabel:'Jellyfish Bloom Underwater',
+    videoSrc:'public/seaanimalsinfo/jellyfish.mp4',
+  },
+  {
+    id:'clownfish',
+    name:'Clownfish',
+    latin:'Amphiprioninae',
+    category:'Fish',
+    thumb:'https://placehold.co/96x96/03101f/ffaa00?text=CF',
+    statusKey:'Least Concern',
+    statusClass:'badge-safe',
+    tagline:'The anemone\'s fearless guardian — immune to stings that kill most other fish.',
+    about:'Clownfish are small, vibrantly coloured reef fish famed for their symbiotic relationship with sea anemones. The anemone\'s venomous tentacles — lethal to most fish — pose no danger to clownfish thanks to a protective mucus layer. They clean anemones and drive away predators in return for shelter.',
+    habitat:'Native to warm, shallow waters of the Indian and Pacific Oceans, from the Red Sea to Australia and Japan. Found exclusively among the tentacles of sea anemones on tropical coral reefs, typically at depths of 1–15 m.',
+    behavior:'Highly territorial — rarely stray more than a few metres from their host anemone. Omnivorous: eat algae, zooplankton and scraps left by the anemone. Communicate through chirping and clicking sounds produced by snapping their jaws.',
+    lifecycle:'All clownfish are born male. The largest fish in a group becomes female (protandrous hermaphroditism). If the dominant female dies, the dominant male transforms into a female. Eggs are laid on flat surfaces near the anemone and guarded until hatching.',
+    funFact:'Clownfish are sequential hermaphrodites — all are born male. When the dominant female of a group dies, the dominant male physically changes sex to become female.',
+    chars:['Immune to sea anemone\'s venom','All born male — can change sex','Produce mucus layer for anemone protection','Highly territorial around host anemone','Snap jaws to communicate'],
+    stats:{length:'8 – 15 cm',weight:'50 – 250 g',lifespan:'6 – 10 yrs',diet:'Algae, plankton, scraps',depth:'1 – 15 m'},
+    trendDir:'declining',
+    trendData:[80,78,75,72,68,65,60,58,54,50],
+    behaviorTraits:{feeding:'Omnivorous grazer, eating algae, zooplankton and scraps left by its host anemone.',social:'Lives in a strict hierarchy within a host anemone, led by a dominant breeding pair.',activity:'Rarely strays from its host anemone and is highly territorial toward intruders.'},
+    lifecycleStages:[
+      {icon:'egg',label:'Eggs Laid',desc:'Eggs are laid on a flat surface near the anemone and guarded closely by the male.'},
+      {icon:'child_care',label:'Larval Drift',desc:'Larvae hatch at night and drift in open water for 1–2 weeks before settling.'},
+      {icon:'waves',label:'Juvenile Settlement',desc:'Surviving juveniles find a host anemone and join its resident hierarchy.'},
+      {icon:'tsunami',label:'Sex Change',desc:'The dominant fish becomes female; if she dies, the top male transforms to replace her.'}
+    ],
+    threats:[
+      {icon:'thermostat',label:'Coral Bleaching',severity:'High',desc:'Bleaching kills host anemones, leaving clownfish without shelter.'},
+      {icon:'phishing',label:'Collection Trade',severity:'Medium',desc:'Popular in the aquarium trade, driving unsustainable wild collection.'},
+      {icon:'delete',label:'Pollution',severity:'Low',desc:'Runoff and sedimentation degrade reef water quality.'},
+      {icon:'construction',label:'Reef Destruction',severity:'Medium',desc:'Physical damage to reefs from anchors, trawling and coastal works.'}
+    ],
+    sightings:['Great Barrier Reef','Red Sea','Coral Triangle','Thailand Gulf'],
+    mapDots:[{x:'91.0%',y:'60.2%',label:'Great Barrier Reef'},{x:'60.6%',y:'38.9%',label:'Red Sea'},{x:'86.1%',y:'51.1%',label:'Coral Triangle'},{x:'78.1%',y:'44.4%',label:'Thailand Gulf'}],
+    heroImageRef:'public/seaanimalsinfo/clownfish.png',
+    sightingsImages:[
+      'public/seaanimalsinfo/barrierreef.jpg',
+      'public/seaanimalsinfo/redsea.jpg',
+      'public/seaanimalsinfo/coraltriangle.jpg',
+      'public/seaanimalsinfo/thailandgulf.jpg'
+    ],
+    videoLabel:'Clownfish & Anemone Symbiosis',
+    videoSrc:'public/seaanimalsinfo/clownfish.mp4',
+  },
+];
+
+let currentSpecies = SPECIES[0];
+let currentTab = 'overview';
+let activeCategory = 'All';
+
+// ============================================================
+//  BUILD SIDEBAR LIST
+// ============================================================
+function statusBadgeHtml(s){
+  const map={
+    'Endangered':'badge-danger','Least Concern':'badge-safe',
+    'Vulnerable':'badge-vuln','Near Threatened':'badge-warn'
+  };
+  return `<span class="${map[s]||'badge-safe'}" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:3px;">${s}</span>`;
+}
+
+function buildSidebar(list){
+  const el=document.getElementById('species-list');
+  el.innerHTML='';
+  list.forEach(sp=>{
+    const active=sp.id===currentSpecies.id;
+    const div=document.createElement('div');
+    div.className='sp-item bc rounded-xl p-2.5 flex gap-3 items-center '+(active?'glass-active':'glass');
+    div.innerHTML=`
+      <img src="${sp.heroImageRef||sp.thumb}" alt="${sp.name}" loading="lazy" decoding="async" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid rgba(133,148,149,.2);flex-shrink:0;" onerror="this.onerror=null;this.src='${sp.thumb}';"/>
+      <div style="min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:${active?'#00f0ff':'#d4e4fa'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sp.name}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-style:italic;color:#849495;margin-bottom:4px;">${sp.latin}</div>
+        ${statusBadgeHtml(sp.statusKey)}
+      </div>`;
+    div.addEventListener('click',()=>loadSpecies(sp));
+    el.appendChild(div);
+  });
+}
+
+// ============================================================
+//  LOAD SPECIES INTO DETAIL PANE
+// ============================================================
+function renderMapDots(mapEl, dots){
+  mapEl.querySelectorAll('.map-dot,.map-label').forEach(e=>e.remove());
+  dots.forEach((dot,i)=>{
+    const d=document.createElement('div');
+    d.className='map-dot';
+    d.style.left=dot.x; d.style.top=dot.y;
+    d.style.animationDelay=(i*0.4)+'s';
+    const lbl=document.createElement('div');
+    lbl.className='map-label';
+    lbl.style.left=dot.x; lbl.style.top=dot.y;
+    lbl.textContent=dot.label||'';
+    mapEl.appendChild(d);
+    mapEl.appendChild(lbl);
+  });
+}
+
+// ============================================================
+//  LAZY MEDIA LOADING
+//  Videos are heavy — only fetch one once its container is
+//  actually on screen, and cancel/ignore stale loads if the
+//  person switches species again before it finishes.
+// ============================================================
+let _videoLoadGen=0;
+function loadHeroVideoWhenVisible(vid, src){
+  // The hero clip is the primary on-screen content the moment a species is
+  // selected, so start fetching it immediately rather than waiting on
+  // visibility — that wait was the source of the perceived "lag" before
+  // playback began. A generation counter still guards against stale loads
+  // if the person switches species again before this one finishes.
+  const myGen=++_videoLoadGen;
+  if(myGen!==_videoLoadGen) return;
+  vid.src=src;
+  vid.load();
+}
+
+function renderSpeciesContent(sp){
+  // Hero
+  document.getElementById('hero-name').textContent=sp.name;
+  document.getElementById('hero-latin').textContent=sp.latin;
+  document.getElementById('hero-tagline').textContent=sp.tagline;
+  document.getElementById('hero-status-badge').innerHTML=`<span class="msym fill" style="font-size:16px;color:${sp.statusKey==='Endangered'?'#ffb4ab':sp.statusKey==='Vulnerable'?'#ffd700':'#00f0ff'};">warning</span><span style="font-size:12px;font-weight:700;color:${sp.statusKey==='Endangered'?'#ffb4ab':sp.statusKey==='Vulnerable'?'#ffd700':'#00f0ff'};font-family:'JetBrains Mono',monospace;letter-spacing:.04em;">${sp.statusKey}</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#b9cacb;letter-spacing:.07em;margin-left:4px;">CONSERVATION STATUS</span>`;
+
+  // Reference image (poster behind video / placeholder)
+  const refImg=document.getElementById('hero-ref-img');
+  refImg.src=sp.heroImageRef||'';
+  refImg.alt=sp.name+' reference image';
+
+  // Video
+  const vid=document.getElementById('species-video');
+  const ph=document.getElementById('vid-placeholder');
+  // fully stop and detach whatever was previously loaded so buffers don't pile up
+  vid.pause();
+  vid.removeAttribute('src');
+  vid.load();
+  vid.style.display='none';
+  vid.onerror=null; vid.oncanplay=null;
+  if(sp.videoSrc){
+    ph.style.display='flex';           // show placeholder while the clip loads
+    refImg.style.display='block';
+    vid.poster=sp.heroImageRef||'';
+    vid.onerror=()=>{                  // clip missing/broken → quietly keep the placeholder + ref image
+      vid.style.display='none';
+      ph.style.display='flex';
+      refImg.style.display='block';
+    };
+    vid.oncanplay=()=>{                // only swap to video once it can actually play
+      vid.style.display='block';
+      ph.style.display='none';
+      refImg.style.display='none';
+      vid.play().catch(()=>{});        // ignore autoplay-blocked rejections
+    };
+    loadHeroVideoWhenVisible(vid, sp.videoSrc);
+  } else {
+    ph.style.display='flex';
+    refImg.style.display='block';
+  }
+
+  // Stats strip
+  const statsEl=document.getElementById('stats-strip');
+  const s=sp.stats;
+  const ICONS={
+    ruler:'<svg viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg>',
+    scale:'<svg viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M12 3v18M7 21h10"/><path d="M5 7h5l-2.5 6a2.6 2.6 0 0 1-5 0L5 7Z"/><path d="M14 7h5l-2.5 6a2.6 2.6 0 0 1-5 0L14 7Z"/><path d="M5 7c1.5-1 5.5-1 7 0M12 7c1.5-1 5.5-1 7 0"/></svg>',
+    clock:'<svg viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+    utensils:'<svg viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M6 3v7a2 2 0 0 0 2 2v9M6 3v7M9 3v7"/><path d="M17 3c-1.7 0-3 1.8-3 5s1.3 5 3 5v9"/></svg>',
+    waves:'<svg viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 8c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0"/><path d="M3 14c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0"/><path d="M3 20c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0"/></svg>',
+  };
+  const statItems=[
+    {icon:ICONS.ruler,label:'Length',val:s.length},
+    {icon:ICONS.scale,label:'Weight',val:s.weight},
+    {icon:ICONS.clock,label:'Lifespan',val:s.lifespan},
+    {icon:ICONS.utensils,label:'Diet',val:s.diet},
+    {icon:ICONS.waves,label:'Depth',val:s.depth},
+  ];
+  statsEl.innerHTML=statItems.map((it,i)=>`
+    <div class="flex flex-col items-center text-center gap-2" style="${i>0?'border-left:1px solid rgba(133,148,149,.15);':''}padding:4px 8px;">
+      <div style="width:52px;height:52px;border-radius:50%;border:1px solid rgba(0,240,255,.25);background:rgba(0,240,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${it.icon}</div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#849495;letter-spacing:.08em;margin-bottom:3px;">${it.label.toUpperCase()}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:#d4e4fa;line-height:1.25;">${it.val}</div>
+      </div>
+    </div>`).join('');
+
+  // About
+  document.getElementById('about-text').textContent=sp.about;
+
+  // Key chars
+  document.getElementById('key-chars').innerHTML=sp.chars.map(c=>`
+    <li class="flex items-start gap-2">
+      <span class="msym" style="font-size:16px;color:#00f0ff;flex-shrink:0;margin-top:1px;">check_circle</span>
+      <span style="font-size:12px;color:#b9cacb;line-height:1.55;">${c}</span>
+    </li>`).join('');
+
+  // Fun fact
+  document.getElementById('fun-fact').textContent=sp.funFact;
+
+  // Habitat / behavior / lifecycle / threats tabs
+  document.getElementById('habitat-text').textContent=sp.habitat;
+  document.getElementById('behavior-text').textContent=sp.behavior;
+  document.getElementById('lifecycle-text').textContent=sp.lifecycle;
+
+  // Behavior trait cards
+  const BT_ICONS={feeding:'restaurant',social:'groups',activity:'schedule'};
+  const BT_LABELS={feeding:'Feeding',social:'Social Structure',activity:'Activity Pattern'};
+  document.getElementById('behavior-traits').innerHTML=Object.keys(BT_ICONS).map(k=>`
+    <div class="bc glass rounded-xl p-4 flex flex-col gap-2.5">
+      <div class="flex items-center gap-2.5">
+        <div class="bt-card-icon"><span class="msym" style="font-size:19px;color:#00f0ff;">${BT_ICONS[k]}</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#d4e4fa;letter-spacing:.05em;">${BT_LABELS[k].toUpperCase()}</div>
+      </div>
+      <div style="font-size:12px;color:#b9cacb;line-height:1.55;">${sp.behaviorTraits[k]}</div>
+    </div>`).join('');
+
+  // Lifecycle stage timeline
+  document.getElementById('lifecycle-timeline').innerHTML=sp.lifecycleStages.map((st,i)=>`
+    <div class="lc-stage">
+      <div class="lc-stage-line"></div>
+      <div class="lc-stage-icon"><span class="msym" style="font-size:20px;color:#00f0ff;">${st.icon}</span></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#00f0ff;letter-spacing:.06em;margin-top:10px;">STAGE ${i+1}</div>
+      <div style="font-size:12px;font-weight:600;color:#d4e4fa;margin-top:2px;">${st.label}</div>
+      <div style="font-size:10.5px;color:#849495;line-height:1.5;margin-top:4px;">${st.desc}</div>
+    </div>`).join('');
+
+  // Threats with severity
+  const sevClass={High:'sev-high',Medium:'sev-medium',Low:'sev-low'};
+  document.getElementById('threats-grid').innerHTML=sp.threats.map(t=>`
+    <div class="bc glass p-3.5 rounded-xl flex gap-3 items-start">
+      <div class="bt-card-icon" style="flex-shrink:0;"><span class="msym" style="font-size:19px;color:#b9cacb;">${t.icon}</span></div>
+      <div style="min-width:0;">
+        <div class="flex items-center gap-2 flex-wrap" style="margin-bottom:3px;">
+          <span style="font-size:12px;font-weight:600;color:#d4e4fa;">${t.label}</span>
+          <span class="${sevClass[t.severity]||'sev-medium'}" style="font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.05em;padding:1px 6px;border-radius:4px;">${(t.severity||'Medium').toUpperCase()}</span>
+        </div>
+        <div style="font-size:11px;color:#849495;line-height:1.5;">${t.desc||''}</div>
+      </div>
+    </div>`).join('');
+
+  // Habitat tab: known locations list
+  document.getElementById('habitat-locations').innerHTML=sp.mapDots.map(d=>`
+    <div class="flex items-center gap-2 glass rounded-lg px-2.5 py-2">
+      <div style="width:7px;height:7px;border-radius:50%;background:#00f0ff;box-shadow:0 0 6px #00f0ff;flex-shrink:0;"></div>
+      <span style="font-size:11px;color:#d4e4fa;">${d.label}</span>
+    </div>`).join('');
+
+  // Trend
+  const dir=sp.trendDir;
+  document.getElementById('trend-label').innerHTML=`${dir==='increasing'?'Growing':dir==='declining'?'Declining':'Stable'} <span class="msym" style="font-size:13px;">${dir==='increasing'?'trending_up':dir==='declining'?'trending_down':'trending_flat'}</span>`;
+  document.getElementById('trend-label').style.color=dir==='increasing'?'#00f0ff':dir==='declining'?'#ffb4ab':'#b9cacb';
+  drawSparkline(sp.trendData, dir);
+
+  // Sightings — using placeholder image references
+  document.getElementById('sightings-grid').innerHTML=sp.sightings.map((loc,i)=>`
+    <div class="bc glass rounded-lg overflow-hidden" style="cursor:pointer;">
+      <img src="${(sp.sightingsImages&&sp.sightingsImages[i])||''}" alt="${loc}" loading="lazy" decoding="async" onerror="this.style.display='none'" style="width:100%;height:52px;object-fit:cover;display:block;"/>
+      <div style="padding:5px 7px;">
+        <div style="font-size:11px;font-weight:500;color:#d4e4fa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${loc}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#849495;">${i===0?'2h ago':i===1?'1d ago':i===2?'2d ago':'3d ago'}</div>
+      </div>
+    </div>`).join('');
+
+  // Map dots — both the compact aside map and the larger habitat-tab map
+  renderMapDots(document.getElementById('species-map'), sp.mapDots);
+  renderMapDots(document.getElementById('habitat-map'), sp.mapDots);
+
+  // Quick facts
+  document.getElementById('quick-facts').innerHTML=[
+    ['Class',sp.category==='Mammals'?'Mammalia':sp.category==='Reptiles'?'Reptilia':sp.category==='Fish'?'Actinopterygii':'Invertebrata'],
+    ['Order',sp.latin.split(' ')[0]],
+    ['Family',sp.latin],
+    ['Status',sp.statusKey],
+    ['Population','Est. '+trendDescription(sp.trendDir)],
+  ].map(([k,v])=>`
+    <div class="flex justify-between items-center" style="border-bottom:1px solid rgba(133,148,149,.1);padding-bottom:6px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#849495;letter-spacing:.05em;">${k.toUpperCase()}</span>
+      <span style="font-size:11px;font-weight:500;color:#d4e4fa;text-align:right;max-width:60%;">${v}</span>
+    </div>`).join('');
+
+  // reset to overview tab
+  switchTab('overview',document.querySelector('.tab-btn[data-tab="overview"]'));
+}
+
+function loadSpecies(sp){
+  if(currentSpecies && currentSpecies.id===sp.id) return;
+  currentSpecies=sp;
+  buildSidebar(getFilteredList());
+
+  const detailAnim=document.getElementById('detail-anim');
+  const sideAnim=document.getElementById('side-anim');
+
+  // fade OUT current content, then swap data, then fade back IN
+  detailAnim.classList.add('fade-out');
+  sideAnim.classList.add('fade-out');
+
+  setTimeout(()=>{
+    renderSpeciesContent(sp);
+    // force reflow so the fade-in transition actually plays
+    void detailAnim.offsetWidth;
+    detailAnim.classList.remove('fade-out');
+    sideAnim.classList.remove('fade-out');
+  }, 260);
+}
+
+function trendDescription(d){
+  if(d==='increasing') return '↑ Growing slowly';
+  if(d==='declining') return '↓ At risk of decline';
+  return '→ Stable / recovering';
+}
+
+// ============================================================
+//  SPARKLINE
+// ============================================================
+function drawSparkline(data, dir, canvasId, tooltipId, hgt){
+  canvasId=canvasId||'spark-canvas'; tooltipId=tooltipId||'spark-tooltip';
+  const canvas=document.getElementById(canvasId);
+  const tooltip=document.getElementById(tooltipId);
+  if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  const w=canvas.parentElement.offsetWidth||260;
+  const h=hgt||canvas.parentElement.offsetHeight||90;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  canvas.style.width=w+'px'; canvas.style.height=h+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const pad={l:6,r:6,t:8,b:10};
+  const min=Math.min(...data)-5, max=Math.max(...data)+5;
+  const xs=data.map((_,i)=>pad.l+(i/(data.length-1))*(w-pad.l-pad.r));
+  const ys=data.map(v=>h-pad.b-((v-min)/(max-min))*(h-pad.t-pad.b));
+  const lineCol=dir==='increasing'?'#00f0ff':dir==='declining'?'#ffb4ab':'#b9cacb';
+  const col=dir==='increasing'?'0,240,255':dir==='declining'?'255,180,171':'180,200,220';
+  const yearFor=i=>Math.round(2000 + i*(25/(data.length-1)));
+
+  function render(hoverIdx){
+    ctx.clearRect(0,0,w,h);
+    // grid lines
+    ctx.strokeStyle='rgba(133,148,149,.1)'; ctx.lineWidth=1;
+    [.25,.5,.75].forEach(f=>{
+      const y=h-pad.b-f*(h-pad.t-pad.b);
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(w-pad.r,y); ctx.stroke();
+    });
+
+    // fill gradient
+    const grad=ctx.createLinearGradient(0,pad.t,0,h-pad.b);
+    grad.addColorStop(0,`rgba(${col},.18)`);
+    grad.addColorStop(1,`rgba(${col},0)`);
+    ctx.beginPath();
+    ctx.moveTo(xs[0],ys[0]);
+    for(let i=1;i<xs.length;i++){
+      const mx=(xs[i-1]+xs[i])/2;
+      ctx.bezierCurveTo(mx,ys[i-1],mx,ys[i],xs[i],ys[i]);
+    }
+    ctx.lineTo(xs[xs.length-1],h-pad.b);
+    ctx.lineTo(xs[0],h-pad.b);
+    ctx.closePath();
+    ctx.fillStyle=grad; ctx.fill();
+
+    // line
+    ctx.beginPath();
+    ctx.moveTo(xs[0],ys[0]);
+    for(let i=1;i<xs.length;i++){
+      const mx=(xs[i-1]+xs[i])/2;
+      ctx.bezierCurveTo(mx,ys[i-1],mx,ys[i],xs[i],ys[i]);
+    }
+    ctx.strokeStyle=lineCol; ctx.lineWidth=1.8; ctx.stroke();
+
+    // crosshair on hover
+    if(hoverIdx!=null){
+      ctx.beginPath();
+      ctx.strokeStyle='rgba(0,240,255,.35)'; ctx.lineWidth=1;
+      ctx.setLineDash([2,3]);
+      ctx.moveTo(xs[hoverIdx],pad.t); ctx.lineTo(xs[hoverIdx],h-pad.b);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // dots
+    xs.forEach((x,i)=>{
+      const isLast=i===xs.length-1, isHover=i===hoverIdx;
+      ctx.beginPath();
+      ctx.arc(x,ys[i],isHover?4.5:(isLast?3.5:2),0,Math.PI*2);
+      ctx.fillStyle=lineCol;
+      ctx.fill();
+      if(isLast||isHover){
+        ctx.strokeStyle='#051424'; ctx.lineWidth=1.5; ctx.stroke();
+      }
+      if(isHover){
+        ctx.beginPath();
+        ctx.arc(x,ys[i],7,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(${col},.5)`; ctx.lineWidth=1.5; ctx.stroke();
+      }
+    });
+  }
+
+  render(null);
+
+  function handleMove(clientX){
+    const rect=canvas.getBoundingClientRect();
+    const mx=clientX-rect.left;
+    let idx=0, best=Infinity;
+    xs.forEach((x,i)=>{ const d=Math.abs(x-mx); if(d<best){best=d; idx=i;} });
+    render(idx);
+    tooltip.textContent=`${yearFor(idx)} — Index ${data[idx]}`;
+    tooltip.style.left=xs[idx]+'px';
+    tooltip.style.top=ys[idx]+'px';
+    tooltip.classList.add('show');
+  }
+  canvas.onmousemove=e=>handleMove(e.clientX);
+  canvas.ontouchmove=e=>{ if(e.touches[0]) handleMove(e.touches[0].clientX); };
+  canvas.onmouseleave=canvas.ontouchend=()=>{ render(null); tooltip.classList.remove('show'); };
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+const TABS=['overview','habitat','behavior','lifecycle','threats'];
+function switchTab(name,btn){
+  currentTab=name;
+  TABS.forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el) el.classList.toggle('hidden',t!==name);
+  });
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  moveTabIndicator(btn);
+}
+function moveTabIndicator(btn){
+  const row=document.getElementById('tab-row');
+  const ind=document.getElementById('tab-indicator');
+  if(!row||!ind) return;
+  const target=btn||row.querySelector('.tab-btn.active')||row.querySelector('.tab-btn');
+  if(!target) return;
+  const rowRect=row.getBoundingClientRect();
+  const btnRect=target.getBoundingClientRect();
+  ind.style.left=(btnRect.left-rowRect.left)+'px';
+  ind.style.width=btnRect.width+'px';
+}
+window.addEventListener('resize', ()=>moveTabIndicator());
+
+// ============================================================
+//  FILTER
+// ============================================================
+function getFilteredList(){
+  return SPECIES.filter(s=>{
+    const catOk=activeCategory==='All'||s.category===activeCategory;
+    const q=(document.getElementById('search-input')?.value||'').toLowerCase();
+    const qOk=!q||s.name.toLowerCase().includes(q)||s.latin.toLowerCase().includes(q);
+    return catOk&&qOk;
+  });
+}
+function filterCategory(cat){
+  activeCategory=cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>{
+    const active=b.dataset.cat===cat;
+    b.style.background=active?'rgba(0,240,255,.15)':'transparent';
+    b.style.color=active?'#00f0ff':'#b9cacb';
+    b.style.borderColor=active?'rgba(0,240,255,.4)':'rgba(133,148,149,.3)';
+  });
+  buildSidebar(getFilteredList());
+}
+function filterSpecies(q){
+  buildSidebar(getFilteredList());
+}
+
+// ============================================================
+//  BENTO GLOW ENGINE
+// ============================================================
+(function(){
+  const G=[0,240,255];
+  const PROX=130,FADE=260;
+  const spotlight=document.createElement('div');
+  spotlight.className='global-spotlight';
+  document.body.appendChild(spotlight);
+
+  document.addEventListener('mousemove',e=>{
+    let min=Infinity;
+    document.querySelectorAll('.bc').forEach(card=>{
+      const r=card.getBoundingClientRect();
+      const cx=r.left+r.width/2,cy=r.top+r.height/2;
+      const dist=Math.max(0,Math.hypot(e.clientX-cx,e.clientY-cy)-Math.max(r.width,r.height)/2);
+      min=Math.min(min,dist);
+      let gi=0;
+      if(dist<=PROX) gi=1;
+      else if(dist<=FADE) gi=(FADE-dist)/(FADE-PROX);
+      const rx=((e.clientX-r.left)/r.width)*100;
+      const ry=((e.clientY-r.top)/r.height)*100;
+      card.style.setProperty('--gx',rx+'%');
+      card.style.setProperty('--gy',ry+'%');
+      card.style.setProperty('--gi',gi.toString());
+    });
+    spotlight.style.left=e.clientX+'px';
+    spotlight.style.top=e.clientY+'px';
+    const op=min<=PROX?.7:min<=FADE?((FADE-min)/(FADE-PROX))*.7:0;
+    spotlight.style.opacity=op;
+  });
+
+  document.addEventListener('mouseleave',()=>{
+    document.querySelectorAll('.bc').forEach(c=>c.style.setProperty('--gi','0'));
+    spotlight.style.opacity=0;
+  });
+
+  // ripple on click
+  document.querySelectorAll('.bc').forEach(card=>{
+    card.addEventListener('click',e=>{
+      const r=card.getBoundingClientRect();
+      const x=e.clientX-r.left,y=e.clientY-r.top;
+      const md=Math.max(Math.hypot(x,y),Math.hypot(x-r.width,y),Math.hypot(x,y-r.height),Math.hypot(x-r.width,y-r.height));
+      const rip=document.createElement('div');
+      rip.style.cssText=`position:absolute;width:${md*2}px;height:${md*2}px;border-radius:50%;background:radial-gradient(circle,rgba(0,240,255,.3) 0%,transparent 70%);left:${x-md}px;top:${y-md}px;pointer-events:none;z-index:4;opacity:1;transition:transform .6s ease,opacity .6s ease;transform:scale(0);`;
+      card.appendChild(rip);
+      requestAnimationFrame(()=>{rip.style.transform='scale(1)';rip.style.opacity='0';});
+      setTimeout(()=>rip.remove(),600);
+    });
+  });
+})();
+
+// ============================================================
+//  VANTA + LENIS INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  if(window.VANTA) VANTA.TOPOLOGY({el:'#vanta-bg',mouseControls:true,touchControls:true,gyroControls:false,minHeight:200,minWidth:200,scale:1,color:0x00d4ff,backgroundColor:0x051424});
+  // Note: Lenis is built for window-level or wrapper/content-pair scrolling.
+  // Applying it directly to each independent `.scroll` panel (wrapper === content)
+  // is invalid usage and was causing the jumpy/broken scroll behavior.
+  // Native `scroll-behavior: smooth` + `overscroll-behavior: contain` (set in CSS)
+  // gives reliable, non-janky smooth scrolling for these internal panels instead.
+});
+
+// ============================================================
+//  MAP EXPAND MODAL
+// ============================================================
+const MAP_IMG_SRC = "public/seaanimalsinfo/worldmap.png";
+function openMapModal(){
+  if(!currentSpecies) return;
+  const overlay=document.getElementById('map-modal-overlay');
+  const mapEl=document.getElementById('map-modal-map');
+  document.getElementById('map-modal-title').textContent=currentSpecies.name+' — Known Locations';
+  mapEl.innerHTML=`<img class="ocean-map-img" src="${MAP_IMG_SRC}" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div>`;
+  renderMapDots(mapEl, currentSpecies.mapDots);
+  overlay.classList.add('open');
+  document.addEventListener('keydown', mapModalEscHandler);
+}
+function closeMapModal(){
+  document.getElementById('map-modal-overlay').classList.remove('open');
+  document.removeEventListener('keydown', mapModalEscHandler);
+}
+function mapModalEscHandler(e){ if(e.key==='Escape') closeMapModal(); }
+
+function openTrendModal(){
+  if(!currentSpecies) return;
+  const overlay=document.getElementById('trend-modal-overlay');
+  document.getElementById('trend-modal-title').textContent=currentSpecies.name+' — Population Trend';
+  overlay.classList.add('open');
+  document.addEventListener('keydown', trendModalEscHandler);
+  // draw after the panel has laid out at full size
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    drawSparkline(currentSpecies.trendData, currentSpecies.trendDir, 'spark-canvas-large', 'spark-tooltip-large');
+  }));
+}
+function closeTrendModal(){
+  document.getElementById('trend-modal-overlay').classList.remove('open');
+  document.removeEventListener('keydown', trendModalEscHandler);
+}
+function trendModalEscHandler(e){ if(e.key==='Escape') closeTrendModal(); }
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('trend-modal-overlay').classList.contains('open') && currentSpecies){
+    drawSparkline(currentSpecies.trendData, currentSpecies.trendDir, 'spark-canvas-large', 'spark-tooltip-large');
+  }
+});
+
+function goBack(){
+  // scroll sidebar into view and give it a soft highlight pulse
+  const list=document.getElementById('species-list');
+  if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ============================================================
+//  BOOT
+// ============================================================
+currentSpecies=SPECIES[0];
+buildSidebar(SPECIES);
+renderSpeciesContent(SPECIES[0]);
+setTimeout(()=>moveTabIndicator(), 60);
+</script>
+</body>
+</html>

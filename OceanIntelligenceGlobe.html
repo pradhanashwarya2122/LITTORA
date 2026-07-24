@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ocean Intelligence Globe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fill: rgba(111,234,255,0.10);
+    --dash: rgba(111,234,255,0.45);
+    --icon: rgba(6,20,38,0.9);
+    --hi:   rgba(111,234,255,0.9);
+    --gold: rgba(198,165,110,0.92);
+    --gold-dim: rgba(198,165,110,0.32);
+    --panel-bg: linear-gradient(165deg, rgba(11,19,32,0.94), rgba(3,8,16,0.94));
+    --panel-border: rgba(198,165,110,0.20);
+    --text-hi: rgba(238,242,248,0.96);
+    --text-lo: rgba(172,188,206,0.64);
+    --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --font-ui: "Sora", -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #030a15;
+    font-family: var(--font-ui);
+  }
+  #deepBg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 120% 90% at 22% 8%, rgba(35,68,96,0.55) 0%, rgba(3,10,20,0) 55%),
+      radial-gradient(ellipse 90% 70% at 82% 88%, rgba(20,52,58,0.40) 0%, rgba(3,10,20,0) 55%),
+      linear-gradient(180deg, #061323 0%, #030a15 46%, #01050c 100%);
+  }
+  #deepBg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  canvas { display: block; touch-action: none; }
+  #globeCanvasHolder {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  #zonePanel {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 22px 22px 20px;
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    box-shadow: 0 30px 80px rgba(0,3,10,0.7), 0 0 0 1px rgba(198,165,110,0.05) inset, 0 1px 0 rgba(255,255,255,0.04) inset;
+    color: var(--text-hi);
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(.2,.9,.25,1);
+    z-index: 10;
+    overflow: hidden;
+  }
+  #zonePanel::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.6;
+  }
+  #zonePanel.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .zp-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin-bottom: 14px;
+  }
+  .zp-icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(155deg, rgba(198,165,110,0.14), rgba(198,165,110,0.02));
+    border: 1px solid var(--gold-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(198,165,110,0.08) inset;
+  }
+  .zp-icon svg { width: 20px; height: 20px; }
+  .zp-heading { flex: 1; min-width: 0; }
+  .zp-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    color: var(--text-hi);
+    line-height: 1.3;
+  }
+  .zp-sub {
+    font-size: 10px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 5px;
+    font-weight: 500;
+    font-family: var(--font-ui);
+  }
+  .zp-close {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .zp-close:hover { background: rgba(212,175,105,0.1); border-color: var(--gold-dim); }
+  .zp-close svg { width: 12px; height: 12px; }
+
+  .zp-desc {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--text-lo);
+    margin-bottom: 16px;
+    font-weight: 400;
+  }
+  .zp-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .zp-stat {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(212,175,105,0.10);
+    border-radius: 10px;
+    padding: 9px 11px;
+    transition: border-color 0.2s;
+  }
+  .zp-stat-label {
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-lo);
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  .zp-stat-value {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: 0.2px;
+  }
+  .zp-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-hi);
+  }
+  .zp-status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 4px rgba(198,165,110,0.55);
+  }
+  .zp-coords {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(212,175,105,0.10);
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    color: rgba(180,196,214,0.45);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+
+<div id="deepBg"></div>
+
+<div id="zonePanel">
+  <div class="zp-top">
+    <div class="zp-icon" id="zpIconHolder"></div>
+    <div class="zp-heading">
+      <div class="zp-title" id="zpTitle">—</div>
+      <div class="zp-sub" id="zpSub">—</div>
+    </div>
+    <div class="zp-close" id="zpClose">
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(220,232,250,0.85)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>
+    </div>
+  </div>
+  <div class="zp-desc" id="zpDesc">—</div>
+  <div class="zp-stats" id="zpStats"></div>
+  <div class="zp-coords" id="zpCoords"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =========================================================
+   SVG ICON LIBRARY (replaces emoji glyphs entirely)
+   ========================================================= */
+const COLOR_DRONE = '#6FEAFF';
+const COLOR_CORAL = '#D4AF69';
+const COLOR_MPA = '#6FEAFF';
+const COLOR_POLLUTION = '#E0684F';
+const COLOR_BIO = '#5FD9A8';
+const COLOR_CURRENT = '#6FEAFF';
+
+const svgWrapC = (inner, stroke) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+
+/* Only the six categories shown in the dashboard legend. */
+const ICON_DEFS = [
+  {
+    key: 'drone', type: 'Drone Survey Point', color: COLOR_DRONE,
+    svg: svgWrapC(`<circle cx="5" cy="5" r="1.8"/><circle cx="19" cy="5" r="1.8"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="19" r="1.8"/><line x1="6.3" y1="6.3" x2="10.2" y2="10.2"/><line x1="17.7" y1="6.3" x2="13.8" y2="10.2"/><line x1="6.3" y1="17.7" x2="10.2" y2="13.8"/><line x1="17.7" y1="17.7" x2="13.8" y2="13.8"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.2"/>`, COLOR_DRONE),
+    desc: 'An active drone and ROV survey point conducting seafloor mapping and visual inspection sweeps in the {basin}.',
+    metric: () => ({ label: 'Active Units', value: `${Math.round(1 + Math.random() * 8)}` })
+  },
+  {
+    key: 'coral', type: 'Coral Reef Zone', color: COLOR_CORAL,
+    svg: svgWrapC(`<path d="M12 21v-6"/><path d="M12 15c0-3 -3-3-3-6s2-4 3-4"/><path d="M12 15c0-3 3-3 3-6s-2-4-3-4"/><path d="M9 9c-2 0-3-2-3-4"/><path d="M15 9c2 0 3-2 3-4"/>`, COLOR_CORAL),
+    desc: 'A coral reef monitoring zone assessing coral health, bleaching risk, and reef biodiversity within the {basin}.',
+    metric: () => ({ label: 'Reef Health Index', value: `${Math.round(40 + Math.random() * 55)}%` })
+  },
+  {
+    key: 'shield', type: 'Marine Protected Area', color: COLOR_MPA,
+    svg: svgWrapC(`<path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6z"/><path d="M9 12l2 2 4-4"/>`, COLOR_MPA),
+    desc: 'A designated Marine Protected Area within the {basin}, with restricted activity to preserve local marine ecosystems.',
+    metric: () => ({ label: 'Protected Area', value: `${Math.round(50 + Math.random() * 900)} km²` })
+  },
+  {
+    key: 'warning', type: 'Pollution Hotspot', color: COLOR_POLLUTION,
+    svg: svgWrapC(`<path d="M12 3l10 18H2z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17" r="0.6" fill="${COLOR_POLLUTION}" stroke="none"/>`, COLOR_POLLUTION),
+    desc: 'A flagged pollution hotspot in the {basin} showing elevated contaminant readings, under continued monitoring.',
+    metric: () => ({ label: 'Contaminant Index', value: `${Math.round(30 + Math.random() * 60)}/100` })
+  },
+  {
+    key: 'leaf', type: 'High Biodiversity Zone', color: COLOR_BIO,
+    svg: svgWrapC(`<path d="M4 20c0-9 6-15 15-16 0 9-6 15-15 16z"/><path d="M6 18c3-3 5-6 6-10"/>`, COLOR_BIO),
+    desc: 'A high biodiversity zone in the {basin} tracking species richness and ecosystem resilience over time.',
+    metric: () => ({ label: 'Species Richness', value: `${Math.round(60 + Math.random() * 240)} spp.` })
+  },
+  {
+    key: 'current', type: 'Ocean Current', color: COLOR_CURRENT,
+    svg: svgWrapC(`<path d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>`, COLOR_CURRENT),
+    desc: 'This region tracks ocean current velocity, direction, and seasonal variability affecting circulation in the {basin}.',
+    metric: () => ({ label: 'Current Speed', value: `${(0.3 + Math.random() * 2.5).toFixed(1)} kt` })
+  },
+];
+const GENERIC = {
+  type: 'Ocean Survey Zone', color: COLOR_DRONE,
+  desc: 'A general ocean survey zone within the {basin}, monitored for baseline environmental conditions.',
+};
+
+/* =========================================================
+   NAMED LANDMARK PINS (Popular Regions from the dashboard)
+   ========================================================= */
+const GOLD = '#D4AF69';
+const svgWrapGold = (inner) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${GOLD}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const LANDMARK_ICON_SVG = svgWrapGold(`<path d="M12 21s7-7.58 7-12a7 7 0 1 0-14 0c0 4.42 7 12 7 12z"/><circle cx="12" cy="9" r="2.3" fill="${GOLD}" stroke="none"/>`);
+
+const LANDMARKS = [
+  { id: 'maldives', name: 'Maldives', lat: 3.2028, lon: 73.2207, tag: 'High Biodiversity', score: 92, status: 'Excellent',
+    stats: [['Water Temp', '28.1 °C'], ['Coral Health', '89%'], ['Biodiversity', '94%'], ['Plastic Density', '0.4 kg/km²']],
+    desc: 'A high-biodiversity atoll system in the Indian Ocean, home to some of the healthiest coral reef systems in the network.' },
+  { id: 'gbr', name: 'Great Barrier Reef', lat: -18.2871, lon: 147.6992, tag: 'Coral Diversity', score: 88, status: 'Good',
+    stats: [['Water Temp', '26.3 °C'], ['Coral Health', '81%'], ['Biodiversity', '90%'], ['Plastic Density', '0.8 kg/km²']],
+    desc: 'The world\u2019s largest coral reef system off the coast of Australia, tracked for bleaching risk and reef resilience.' },
+  { id: 'bali', name: 'Bali Coast', lat: -8.4095, lon: 115.1889, tag: 'Water Quality', score: 76, status: 'Good',
+    stats: [['Water Temp', '25.4 °C'], ['Coral Health', '72%'], ['Biodiversity', '68%'], ['Plastic Density', '1.2 kg/km²']],
+    desc: 'A coastal monitoring zone off Indonesia focused on water quality trends and nearshore reef recovery.' },
+  { id: 'andaman', name: 'Andaman Sea', lat: 10.0, lon: 96.0, tag: 'Marine Life', score: 85, status: 'Good',
+    stats: [['Water Temp', '27.0 °C'], ['Coral Health', '77%'], ['Biodiversity', '83%'], ['Plastic Density', '0.9 kg/km²']],
+    desc: 'A marine-life rich basin between Thailand and India, monitored for fish population density and migration.' },
+  { id: 'seychelles', name: 'Seychelles', lat: -4.6796, lon: 55.4920, tag: 'Conservation Area', score: 90, status: 'Excellent',
+    stats: [['Water Temp', '27.6 °C'], ['Coral Health', '85%'], ['Biodiversity', '88%'], ['Plastic Density', '0.5 kg/km²']],
+    desc: 'A protected conservation area in the western Indian Ocean with strong marine protected area compliance.' },
+];
+
+function rasterizeSVGIcon(svgMarkup, size = 128, haloColor = '255,255,255') {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const finish = () => {
+      const cx = size / 2, cy = size / 2, r = size / 2;
+
+      // Faint outer bloom — kept minimal so markers read as fine instruments, not glowing orbs
+      const glow = ctx.createRadialGradient(cx, cy, r * 0.62, cx, cy, r * 0.85);
+      glow.addColorStop(0, `rgba(${haloColor},0.07)`);
+      glow.addColorStop(1, `rgba(${haloColor},0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.85, 0, Math.PI * 2); ctx.fill();
+
+      // Dark glass disc body
+      const body = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.3, r * 0.05, cx, cy, r * 0.72);
+      body.addColorStop(0, 'rgba(20,30,44,0.92)');
+      body.addColorStop(1, 'rgba(6,12,22,0.96)');
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.72, 0, Math.PI * 2); ctx.fill();
+
+      // Hairline rim in the icon's accent color, plus a slim gold inner ring
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.72, 0, Math.PI * 2);
+      ctx.lineWidth = size * 0.018;
+      ctx.strokeStyle = `rgba(${haloColor},0.85)`;
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.64, 0, Math.PI * 2);
+      ctx.lineWidth = size * 0.008;
+      ctx.strokeStyle = 'rgba(212,175,105,0.4)';
+      ctx.stroke();
+
+      // Subtle top-light sheen for a polished, lacquered look
+      const sheen = ctx.createRadialGradient(cx - r * 0.18, cy - r * 0.32, 0, cx - r * 0.18, cy - r * 0.32, r * 0.5);
+      sheen.addColorStop(0, 'rgba(255,255,255,0.14)');
+      sheen.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sheen;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.72, 0, Math.PI * 2); ctx.fill();
+
+      const iconSize = size * 0.42;
+      ctx.drawImage(img, (size - iconSize) / 2, (size - iconSize) / 2, iconSize, iconSize);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      URL.revokeObjectURL(url);
+      resolve(tex);
+    };
+    img.onload = finish;
+    img.onerror = finish;
+    img.src = url;
+  });
+}
+
+/* =========================================================
+   SCENE SETUP
+   ========================================================= */
+const scene = new THREE.Scene();
+
+// Default framing — the globe opens already zoomed to this distance so
+// visitors never have to scroll/pinch to get a good view on load.
+const DEFAULT_ZOOM_DISTANCE = 3.2;
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, DEFAULT_ZOOM_DISTANCE);
+camera.lookAt(0, 0, 0);
+
+const canvasHolder = document.createElement('div');
+canvasHolder.id = 'globeCanvasHolder';
+document.body.appendChild(canvasHolder);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+canvasHolder.appendChild(renderer.domElement);
+scene.background = null;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.rotateSpeed = 0.75;
+controls.zoomSpeed = 1.1;
+controls.minDistance = 2.2;
+controls.maxDistance = 8.0;
+controls.target.set(0, 0, 0);
+controls.update();
+
+const sunLight = new THREE.DirectionalLight(0xfff2e2, 1.35);
+sunLight.position.set(5, 2, 5);
+scene.add(sunLight);
+
+const fillLight = new THREE.DirectionalLight(0x8ecaff, 0.55);
+fillLight.position.set(-3, -0.5, -2);
+scene.add(fillLight);
+
+scene.add(new THREE.AmbientLight(0x18274a, 1.0));
+
+/* --- Earth --- */
+const earthGroup = new THREE.Group();
+scene.add(earthGroup);
+
+const loader = new THREE.TextureLoader();
+const earthGeometry = new THREE.SphereGeometry(1, 128, 128);
+const earthMaterial = new THREE.MeshPhongMaterial({
+  map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
+  specularMap: loader.load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'),
+  specular: new THREE.Color(0x445566),
+  shininess: 14,
+  normalMap: loader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg'),
+  normalScale: new THREE.Vector2(0.8, 0.8),
+});
+const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+earthGroup.add(earthMesh);
+
+const cloudGeometry = new THREE.SphereGeometry(1.01, 128, 128);
+const cloudMaterial = new THREE.MeshPhongMaterial({
+  map: loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
+  transparent: true,
+  opacity: 0.45,
+  blending: THREE.AdditiveBlending,
+  side: THREE.FrontSide,
+  depthWrite: false,
+  specular: new THREE.Color(0x000000),
+  shininess: 0,
+});
+const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
+earthGroup.add(cloudMesh);
+
+const atmoGeometry = new THREE.SphereGeometry(1.06, 64, 64);
+const atmoMaterial = new THREE.ShaderMaterial({
+  transparent: true,
+  side: THREE.BackSide,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  uniforms: {},
+  vertexShader: `
+    varying vec3 vNormal;
+    void main() {
+      vNormal = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vNormal;
+    void main() {
+      float rim = pow(0.58 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 4.0);
+      vec3 tint = mix(vec3(0.11, 0.30, 0.42), vec3(0.62, 0.52, 0.34), 0.22);
+      gl_FragColor = vec4(tint, 1.0) * rim * 0.32;
+    }
+  `
+});
+scene.add(new THREE.Mesh(atmoGeometry, atmoMaterial));
+
+/* =========================================================
+   OCEAN INTELLIGENCE OVERLAY
+   ========================================================= */
+const oceanLayer = new THREE.Group();
+earthGroup.add(oceanLayer);
+
+const COLOR = {
+  fill: new THREE.Color(0x6feaff),
+  dash: new THREE.Color(0x6feaff),
+  hi:   new THREE.Color(0x6feaff),
+};
+
+function latLonToVector3(lat, lon, radius) {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
+  const x = -radius * Math.sin(phi) * Math.cos(theta);
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const y = radius * Math.cos(phi);
+  return new THREE.Vector3(x, y, z);
+}
+
+function makeDotTexture(hollow = false, colorRGB = '111,234,255') {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  grad.addColorStop(0, `rgba(${colorRGB},0.16)`);
+  grad.addColorStop(0.4, `rgba(${colorRGB},0.06)`);
+  grad.addColorStop(1, `rgba(${colorRGB},0)`);
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, hollow ? size * 0.19 : size * 0.12, 0, Math.PI * 2);
+  if (hollow) { ctx.strokeStyle = `rgba(${colorRGB},0.95)`; ctx.lineWidth = 3.5; ctx.stroke(); }
+  else {
+    const core = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size * 0.12);
+    core.addColorStop(0, 'rgba(255,255,255,0.95)');
+    core.addColorStop(0.4, `rgba(${colorRGB},0.98)`);
+    core.addColorStop(1, `rgba(${colorRGB},0.9)`);
+    ctx.fillStyle = core;
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+function makeRingTexture(colorRGB = '212,175,105') {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  // Soft outer glow
+  const glow = ctx.createRadialGradient(size / 2, size / 2, size * 0.28, size / 2, size / 2, size / 2);
+  glow.addColorStop(0, `rgba(${colorRGB},0.18)`);
+  glow.addColorStop(1, `rgba(${colorRGB},0)`);
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); ctx.fill();
+  // Slim double hairline ring — more jewelry-clasp than corporate dot
+  ctx.strokeStyle = `rgba(${colorRGB},0.95)`;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2 - 6, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = `rgba(${colorRGB},0.45)`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2 - 13, 0, Math.PI * 2); ctx.stroke();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+const dotTexFilled = makeDotTexture(false);
+const dotTexHollow = makeDotTexture(true);
+const ringTex = makeRingTexture();
+
+/* =========================================================
+   GLOBE-EMBEDDED TEXT LABELS
+   Fine small-caps cartographic labels rendered to canvas and
+   billboarded on the surface — fades out on the far side of
+   the sphere instead of a flat HTML overlay.
+   ========================================================= */
+const globeLabels = [];
+
+function makeLabelTexture(text, { size = 'basin', color = '198,165,110' } = {}) {
+  const isBasin = size === 'basin';
+  const fontPx = isBasin ? 46 : 34;
+  const tracking = isBasin ? 0.16 : 0.1;
+  const padX = 40;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = `${isBasin ? 500 : 400} ${fontPx}px Sora, sans-serif`;
+  const upper = text.toUpperCase();
+  let textWidth = 0;
+  for (const ch of upper) textWidth += ctx.measureText(ch).width * (1 + tracking);
+  canvas.width = Math.ceil(textWidth + padX * 2);
+  canvas.height = fontPx * 2.6;
+  ctx.font = `${isBasin ? 500 : 400} ${fontPx}px Sora, sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = `rgba(${color},${isBasin ? 0.62 : 0.85})`;
+  if (isBasin) ctx.shadowColor = 'rgba(0,0,0,0.5)'; else ctx.shadowColor = 'rgba(0,0,0,0.65)';
+  ctx.shadowBlur = fontPx * 0.35;
+  let x = padX;
+  const y = canvas.height / 2;
+  for (const ch of upper) {
+    ctx.fillText(ch, x, y);
+    x += ctx.measureText(ch).width * (1 + tracking);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  tex.anisotropy = 4;
+  return { tex, aspect: canvas.width / canvas.height };
+}
+
+function addGlobeLabel(text, lat, lon, opts = {}) {
+  const { size = 'basin', color = '198,165,110', altitude = 1.045, scale = 0.5 } = opts;
+  const { tex, aspect } = makeLabelTexture(text, { size, color });
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0 });
+  const sprite = new THREE.Sprite(mat);
+  const normal = latLonToVector3(lat, lon, 1).normalize();
+  sprite.position.copy(normal.clone().multiplyScalar(altitude));
+  const h = scale;
+  sprite.scale.set(h * aspect, h, 1);
+  sprite.userData.normal = normal;
+  sprite.userData.maxOpacity = size === 'basin' ? 0.85 : 0.9;
+  oceanLayer.add(sprite);
+  globeLabels.push(sprite);
+  return sprite;
+}
+
+/* Ocean basin demarcations — the large-scale cartographic labels */
+const OCEAN_BASIN_LABELS = [
+  { name: 'Pacific Ocean', lat: 3, lon: -155 },
+  { name: 'Atlantic Ocean', lat: 4, lon: -32 },
+  { name: 'Indian Ocean', lat: -18, lon: 76 },
+  { name: 'Southern Ocean', lat: -62, lon: 25 },
+  { name: 'Arctic Ocean', lat: 82, lon: 0 },
+];
+OCEAN_BASIN_LABELS.forEach(b => addGlobeLabel(b.name, b.lat, b.lon, { size: 'basin', altitude: 1.048, scale: 0.052 }));
+
+function buildTangentFrame(normal) {
+  const up = Math.abs(normal.y) < 0.99 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const tangent = new THREE.Vector3().crossVectors(up, normal).normalize();
+  const bitangent = new THREE.Vector3().crossVectors(normal, tangent).normalize();
+  return { tangent, bitangent };
+}
+
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function buildZoneInfo(basinName, radiusDeg, iconDef) {
+  const type = iconDef ? iconDef.type : GENERIC.type;
+  const descTemplate = iconDef ? iconDef.desc : GENERIC.desc;
+  const depthMin = Math.round(150 + Math.random() * 400);
+  const depthMax = depthMin + Math.round(500 + Math.random() * 3000);
+  const coverageKm = Math.round(radiusDeg * 111);
+  const statuses = ['Active', 'Monitoring', 'Scheduled Survey'];
+  const status = statuses[Math.floor(Math.random() * statuses.length)];
+  const metric = iconDef ? iconDef.metric() : { label: 'Sensors Online', value: `${Math.round(2 + Math.random() * 10)}` };
+  return {
+    id: `zone-${slugify(basinName)}-${slugify(type)}`,
+    name: `${basinName} ${type}`,
+    type,
+    basin: basinName,
+    description: descTemplate.replace('{basin}', basinName),
+    depthRange: `${depthMin}–${depthMax} m`,
+    coverage: `${coverageKm} km radius`,
+    status,
+    metric,
+    iconSvg: iconDef ? iconDef.svg : svgWrap('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="' + SVG_STROKE + '" stroke="none"/>'),
+  };
+}
+
+const zoneObjects = [];
+const clickableZones = [];
+
+function makeZone(lat, lon, radiusDeg, styleType, iconDef, zoneInfo, iconTextures) {
+  const surfaceR = 1.006;
+  const center = latLonToVector3(lat, lon, surfaceR);
+  const normal = center.clone().normalize();
+  const { tangent, bitangent } = buildTangentFrame(normal);
+  const worldRadius = radiusDeg * Math.PI / 180;
+  const segments = 48;
+  const group = new THREE.Group();
+
+  function circlePoints(rFactor) {
+    const pts = [];
+    for (let i = 0; i <= segments; i++) {
+      const a = (i / segments) * Math.PI * 2;
+      const offset = tangent.clone().multiplyScalar(Math.cos(a) * worldRadius * rFactor)
+        .add(bitangent.clone().multiplyScalar(Math.sin(a) * worldRadius * rFactor));
+      pts.push(center.clone().add(offset).normalize().multiplyScalar(surfaceR + 0.001));
+    }
+    return pts;
+  }
+
+  const zoneColor = new THREE.Color(iconDef ? iconDef.color : COLOR.fill);
+
+  // Fill disc — always built so every zone is clickable; opacity varies by style.
+  const pts = circlePoints(1.0);
+  const geom = new THREE.BufferGeometry();
+  const verts = [center.x, center.y, center.z];
+  pts.forEach(p => verts.push(p.x, p.y, p.z));
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  const indices = [];
+  for (let i = 1; i < pts.length; i++) indices.push(0, i, i + 1);
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  const visibleOpacity = styleType === 'glow' ? 0.16 : styleType === 'filled' ? 0.1 : 0.05;
+  const fillMat = new THREE.MeshBasicMaterial({
+    color: zoneColor, transparent: true, opacity: visibleOpacity,
+    depthWrite: false, side: THREE.DoubleSide,
+  });
+  const fillMesh = new THREE.Mesh(geom, fillMat);
+  fillMesh.userData.zoneInfo = zoneInfo;
+  group.add(fillMesh);
+  clickableZones.push(fillMesh);
+
+  const outlinePts = circlePoints(1.0);
+  const dashGeom = new THREE.BufferGeometry().setFromPoints(outlinePts);
+  const dashMat = new THREE.LineDashedMaterial({
+    color: zoneColor, transparent: true, opacity: 0.55, dashSize: 0.018, gapSize: 0.014,
+  });
+  const dashLine = new THREE.Line(dashGeom, dashMat);
+  dashLine.computeLineDistances();
+  group.add(dashLine);
+
+  if (iconDef) {
+    const spriteMat = new THREE.SpriteMaterial({
+      map: iconTextures[iconDef.key], transparent: true, depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.copy(center.clone().normalize().multiplyScalar(surfaceR + 0.012));
+    const s = 0.065;
+    sprite.scale.set(s, s, 1);
+    sprite.userData.zoneInfo = zoneInfo;
+    group.add(sprite);
+    group.userData.icon = sprite;
+    clickableZones.push(sprite);
+  }
+
+  group.userData.baseOpacityDash = dashMat.opacity;
+  group.userData.phase = Math.random() * Math.PI * 2;
+  oceanLayer.add(group);
+  zoneObjects.push(group);
+  return group;
+}
+
+async function addLandmarks() {
+  const landmarkTex = await rasterizeSVGIcon(LANDMARK_ICON_SVG, 128, '212,175,105');
+  LANDMARKS.forEach(loc => {
+    const normal = latLonToVector3(loc.lat, loc.lon, 1).normalize();
+    const group = new THREE.Group();
+
+    const ringMat = new THREE.SpriteMaterial({
+      map: ringTex, color: 0xd4af69, transparent: true, opacity: 0.85, depthWrite: false,
+    });
+    const ring = new THREE.Sprite(ringMat);
+    ring.position.copy(normal.clone().multiplyScalar(1.008));
+    ring.scale.set(0.1, 0.1, 1);
+    ring.userData.baseScale = 0.1;
+    ring.userData.phase = Math.random() * Math.PI * 2;
+
+    const spriteMat = new THREE.SpriteMaterial({
+      map: landmarkTex, transparent: true, depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.copy(normal.clone().multiplyScalar(1.024));
+    sprite.scale.set(0.13, 0.13, 1);
+
+    const zoneInfo = {
+      isLandmark: true,
+      id: loc.id,
+      name: loc.name,
+      type: loc.tag,
+      basin: loc.name,
+      description: loc.desc,
+      status: loc.status,
+      metric: { label: 'Ocean Health Score', value: `${loc.score}/100` },
+      stats: loc.stats,
+      iconSvg: LANDMARK_ICON_SVG,
+      lat: loc.lat,
+      lon: loc.lon,
+    };
+    sprite.userData.zoneInfo = zoneInfo;
+    ring.userData.zoneInfo = zoneInfo;
+
+    group.add(ring);
+    group.add(sprite);
+    group.userData.isLandmarkRing = ring;
+    group.userData.phase = Math.random() * Math.PI * 2;
+    oceanLayer.add(group);
+    zoneObjects.push(group);
+    clickableZones.push(sprite, ring);
+
+    addGlobeLabel(loc.name, loc.lat, loc.lon, { size: 'place', altitude: 1.05, scale: 0.034, color: '224,232,244' });
+  });
+}
+
+/* =========================================================
+   ZONE PANEL UI
+   ========================================================= */
+const zonePanel = document.getElementById('zonePanel');
+const zpIconHolder = document.getElementById('zpIconHolder');
+const zpTitle = document.getElementById('zpTitle');
+const zpSub = document.getElementById('zpSub');
+const zpDesc = document.getElementById('zpDesc');
+const zpStats = document.getElementById('zpStats');
+const zpCoords = document.getElementById('zpCoords');
+const zpClose = document.getElementById('zpClose');
+
+function showZonePanel(info, lat, lon) {
+  zpIconHolder.innerHTML = info.iconSvg;
+  zpTitle.textContent = info.name;
+  zpSub.textContent = info.type;
+  zpDesc.textContent = info.description;
+  if (info.stats) {
+    zpStats.innerHTML = `
+      <div class="zp-stat">
+        <div class="zp-stat-label">Status</div>
+        <div class="zp-status"><span class="zp-status-dot"></span>${info.status}</div>
+      </div>
+      <div class="zp-stat">
+        <div class="zp-stat-label">${info.metric.label}</div>
+        <div class="zp-stat-value">${info.metric.value}</div>
+      </div>
+      ${info.stats.map(([label, value]) => `
+      <div class="zp-stat">
+        <div class="zp-stat-label">${label}</div>
+        <div class="zp-stat-value">${value}</div>
+      </div>`).join('')}
+    `;
+  } else {
+    zpStats.innerHTML = `
+      <div class="zp-stat">
+        <div class="zp-stat-label">Status</div>
+        <div class="zp-status"><span class="zp-status-dot"></span>${info.status}</div>
+      </div>
+      <div class="zp-stat">
+        <div class="zp-stat-label">${info.metric.label}</div>
+        <div class="zp-stat-value">${info.metric.value}</div>
+      </div>
+      <div class="zp-stat">
+        <div class="zp-stat-label">Depth Range</div>
+        <div class="zp-stat-value">${info.depthRange}</div>
+      </div>
+      <div class="zp-stat">
+        <div class="zp-stat-label">Coverage</div>
+        <div class="zp-stat-value">${info.coverage}</div>
+      </div>
+    `;
+  }
+  zpCoords.textContent = `${lat.toFixed(2)}°, ${lon.toFixed(2)}°  ·  ${info.basin}`;
+  zonePanel.classList.add('visible');
+}
+function hideZonePanel() {
+  zonePanel.classList.remove('visible');
+  try { window.parent.postMessage({ type: 'panelClosed' }, '*'); } catch (err) {}
+}
+zpClose.addEventListener('click', hideZonePanel);
+
+/* =========================================================
+   RAYCAST CLICK HANDLING (distinguishes click from drag)
+   ========================================================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let downPos = null;
+
+function setPointer(clientX, clientY) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  downPos = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!downPos) return;
+  const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+  downPos = null;
+  if (moved > 6) return; // treat as a drag, not a click
+
+  setPointer(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(clickableZones, false);
+  if (hits.length > 0) {
+    const hit = hits[0].object;
+    const info = hit.userData.zoneInfo;
+    if (info) {
+      if (info.isLandmark) {
+        selectLandmark(info);
+      } else {
+        const local = earthGroup.worldToLocal(hits[0].point.clone()).normalize();
+        const lat = 90 - (Math.acos(local.y) * 180 / Math.PI);
+        let lon = (Math.atan2(local.x, -local.z) * 180 / Math.PI) - 180;
+        if (lon < -180) lon += 360;
+        showZonePanel(info, lat, lon);
+        try {
+          window.parent.postMessage({
+            type: 'zoneSelected',
+            zone: {
+              id: info.id,
+              name: info.name,
+              category: info.type,
+              basin: info.basin,
+              description: info.description,
+              status: info.status,
+              metricLabel: info.metric.label,
+              metricValue: info.metric.value,
+              depthRange: info.depthRange,
+              coverage: info.coverage,
+              lat, lon,
+            }
+          }, '*');
+        } catch (err) {}
+      }
+    }
+  }
+});
+
+/* =========================================================
+   FLY-TO ANIMATION FOR LANDMARK PINS
+   ========================================================= */
+let flightActive = false;
+function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+function selectLandmark(loc) {
+  if (flightActive) return;
+  flightActive = true;
+  controls.enabled = false;
+  hideZonePanel();
+
+  const targetDir = latLonToVector3(loc.lat, loc.lon, 1).normalize();
+  const targetPos = targetDir.clone().multiplyScalar(2.5);
+  const startPos = camera.position.clone();
+  const startTime = performance.now();
+  const duration = 1300;
+
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const e = easeInOutCubic(t);
+    camera.position.lerpVectors(startPos, targetPos, e);
+    controls.target.set(0, 0, 0);
+    camera.lookAt(controls.target);
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      flightActive = false;
+      controls.enabled = true;
+      controls.update();
+      showZonePanel(loc, loc.lat, loc.lon);
+      try { window.parent.postMessage({ type: 'locationSelected', id: loc.id }, '*'); } catch (err) {}
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function resetView() {
+  if (flightActive) return;
+  flightActive = true;
+  controls.enabled = false;
+  hideZonePanel();
+
+  const startPos = camera.position.clone();
+  const targetPos = new THREE.Vector3(0, 0, DEFAULT_ZOOM_DISTANCE);
+  const startTime = performance.now();
+  const duration = 900;
+
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const e = easeInOutCubic(t);
+    camera.position.lerpVectors(startPos, targetPos, e);
+    controls.target.set(0, 0, 0);
+    camera.lookAt(controls.target);
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      flightActive = false;
+      controls.enabled = true;
+      controls.update();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+window.addEventListener('message', (e) => {
+  const data = e.data || {};
+  if (data.type === 'flyTo' && data.id) {
+    const loc = LANDMARKS.find(l => l.id === data.id);
+    if (loc) selectLandmark(loc);
+  } else if (data.type === 'reset') {
+    resetView();
+  }
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  setPointer(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(clickableZones, false);
+  renderer.domElement.style.cursor = hits.length > 0 ? 'pointer' : '';
+});
+
+/* =========================================================
+   BUILD OCEAN LAYER (after icon textures load)
+   ========================================================= */
+/* Curated, real-world-ish locations — every legend category is represented
+   by a small, clearly labeled set of points instead of random clutter. */
+const CORAL_REEF_SITES = [
+  { name: 'Great Barrier Reef', lat: -16.5, lon: 146.9 },
+  { name: 'Coral Triangle (Raja Ampat)', lat: -1.0, lon: 130.5 },
+  { name: 'Red Sea Reef', lat: 20.5, lon: 38.2 },
+  { name: 'Mesoamerican Reef', lat: 17.2, lon: -87.5 },
+  { name: 'New Caledonia Barrier Reef', lat: -21.3, lon: 165.8 },
+  { name: 'Andaman Reef', lat: 9.4, lon: 97.2 },
+];
+const MPA_SITES = [
+  { name: 'Papahānaumokuākea Marine Monument', lat: 25.5, lon: -171.0 },
+  { name: 'Chagos Marine Protected Area', lat: -6.3, lon: 71.5 },
+  { name: 'Galápagos Marine Reserve', lat: -0.8, lon: -90.8 },
+  { name: 'Ross Sea Marine Protected Area', lat: -73.0, lon: 175.0 },
+  { name: 'Phoenix Islands Protected Area', lat: -3.5, lon: -172.0 },
+];
+const POLLUTION_SITES = [
+  { name: 'Great Pacific Garbage Patch', lat: 33.0, lon: -145.0 },
+  { name: 'Mediterranean Basin', lat: 38.5, lon: 18.0 },
+  { name: 'Bay of Bengal', lat: 15.0, lon: 88.0 },
+  { name: 'Gulf of Mexico', lat: 27.0, lon: -90.5 },
+];
+const BIODIVERSITY_SITES = [
+  { name: 'Sulawesi Sea', lat: 2.5, lon: 122.0 },
+  { name: 'Sargasso Sea', lat: 30.0, lon: -60.0 },
+  { name: 'Galápagos Upwelling Zone', lat: -1.5, lon: -89.5 },
+  { name: 'Seychelles Bank', lat: -5.5, lon: 56.5 },
+];
+const DRONE_SITES = [
+  { name: 'Maldives', lat: 4.2, lon: 74.0 },
+  { name: 'Great Barrier Reef', lat: -17.5, lon: 148.3 },
+  { name: 'Bali Coast', lat: -9.0, lon: 116.0 },
+  { name: 'Andaman Sea', lat: 11.0, lon: 95.5 },
+  { name: 'Seychelles', lat: -3.8, lon: 54.8 },
+  { name: 'North Pacific', lat: 24.0, lon: 155.0 },
+  { name: 'Coral Triangle', lat: -3.0, lon: 128.0 },
+  { name: 'Caribbean Sea', lat: 15.5, lon: -75.0 },
+  { name: 'East Pacific', lat: -12.0, lon: -95.0 },
+  { name: 'Atlantic', lat: 5.0, lon: -35.0 },
+];
+
+async function buildOceanLayer() {
+  const iconTextures = {};
+  const hexToRgbStr = (hex) => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+  };
+  await Promise.all(ICON_DEFS.map(async (d) => { iconTextures[d.key] = await rasterizeSVGIcon(d.svg, 128, hexToRgbStr(d.color)); }));
+
+  const coralDef = ICON_DEFS.find(d => d.key === 'coral');
+  const mpaDef = ICON_DEFS.find(d => d.key === 'shield');
+  const pollutionDef = ICON_DEFS.find(d => d.key === 'warning');
+  const bioDef = ICON_DEFS.find(d => d.key === 'leaf');
+  const droneDef = ICON_DEFS.find(d => d.key === 'drone');
+
+  CORAL_REEF_SITES.forEach(site => {
+    const zoneInfo = buildZoneInfo(site.name, 4.5, coralDef);
+    makeZone(site.lat, site.lon, 4.5, 'glow', coralDef, zoneInfo, iconTextures);
+  });
+  MPA_SITES.forEach(site => {
+    const zoneInfo = buildZoneInfo(site.name, 5.5, mpaDef);
+    makeZone(site.lat, site.lon, 5.5, 'filled', mpaDef, zoneInfo, iconTextures);
+  });
+  POLLUTION_SITES.forEach(site => {
+    const zoneInfo = buildZoneInfo(site.name, 4, pollutionDef);
+    makeZone(site.lat, site.lon, 4, 'glow', pollutionDef, zoneInfo, iconTextures);
+  });
+  BIODIVERSITY_SITES.forEach(site => {
+    const zoneInfo = buildZoneInfo(site.name, 5, bioDef);
+    makeZone(site.lat, site.lon, 5, 'filled', bioDef, zoneInfo, iconTextures);
+  });
+
+  // Drone survey points — rendered as simple clickable markers, not filled zones.
+  const surveyPoints = [];
+  DRONE_SITES.forEach(site => {
+    const pos = latLonToVector3(site.lat, site.lon, 1.01);
+    const mat = new THREE.SpriteMaterial({ map: dotTexFilled, transparent: true, depthWrite: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.copy(pos);
+    const s = 0.032;
+    sprite.scale.set(s, s, 1);
+    sprite.userData.baseScale = s;
+    sprite.userData.phase = Math.random() * Math.PI * 2;
+    sprite.userData.speed = 0.8 + Math.random() * 0.5;
+    sprite.userData.zoneInfo = buildZoneInfo(site.name, 1, droneDef);
+    oceanLayer.add(sprite);
+    surveyPoints.push(sprite);
+    clickableZones.push(sprite);
+  });
+
+  // Ocean currents
+  const currentLines = [];
+  function makeCurrent(startLat, startLon, endLat, endLon, bend = 8) {
+    const p0 = latLonToVector3(startLat, startLon, 1.004);
+    const p1 = latLonToVector3(endLat, endLon, 1.004);
+    const mid = p0.clone().add(p1).multiplyScalar(0.5).normalize().multiplyScalar(1.004 + bend * 0.001);
+    const curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
+    const geom = new THREE.BufferGeometry().setFromPoints(curve.getPoints(40));
+    const mat = new THREE.LineDashedMaterial({ color: COLOR.hi, transparent: true, opacity: 0.5, dashSize: 0.05, gapSize: 0.04 });
+    const line = new THREE.Line(geom, mat);
+    line.computeLineDistances();
+    oceanLayer.add(line);
+    currentLines.push(line);
+  }
+  makeCurrent(10, 150, -10, -150, 15);
+  makeCurrent(-30, -40, 30, -60, 10);
+  makeCurrent(-20, 70, 20, 90, 12);
+  makeCurrent(40, -140, 10, 170, 20);
+  makeCurrent(-50, -20, -40, 60, 18);
+
+  await addLandmarks();
+
+  return { surveyPoints, currentLines };
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+(async function main() {
+  const { surveyPoints, currentLines } = await buildOceanLayer();
+
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+    controls.update();
+
+    cloudMesh.rotation.y += 0.00012;
+
+    zoneObjects.forEach(g => {
+      const phase = g.userData.phase;
+      const breathe = 0.85 + 0.15 * Math.sin(t * 0.5 + phase);
+      g.children.forEach(child => {
+        if (child.isLine) {
+          child.material.opacity = g.userData.baseOpacityDash * breathe;
+          child.material.dashOffset = -t * 0.05;
+        }
+      });
+      if (g.userData.icon) {
+        g.userData.icon.material.opacity = 0.9 + 0.1 * Math.sin(t * 1.2 + phase);
+      }
+      if (g.userData.isLandmarkRing) {
+        const ring = g.userData.isLandmarkRing;
+        const pulse = 1 + 0.6 * ((t * 0.6 + ring.userData.phase) % 1);
+        const fade = 1 - ((t * 0.6 + ring.userData.phase) % 1);
+        ring.scale.set(ring.userData.baseScale * pulse, ring.userData.baseScale * pulse, 1);
+        ring.material.opacity = 0.6 * fade;
+      }
+    });
+
+    surveyPoints.forEach(s => {
+      const pulse = 0.75 + 0.35 * Math.sin(t * s.userData.speed + s.userData.phase);
+      const base = s.userData.baseScale;
+      s.scale.set(base * pulse, base * pulse, 1);
+      s.material.opacity = 0.5 + 0.4 * pulse;
+    });
+
+    currentLines.forEach((line, i) => { line.material.dashOffset = -t * (0.08 + i * 0.01); });
+
+    const camDir = camera.position.clone().normalize();
+    globeLabels.forEach(label => {
+      const facing = label.userData.normal.dot(camDir);
+      const visibility = THREE.MathUtils.smoothstep(facing, 0.08, 0.4);
+      label.material.opacity = visibility * label.userData.maxOpacity;
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
