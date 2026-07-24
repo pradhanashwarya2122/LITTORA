@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Sora:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&icon_names=arrow_back,arrow_forward,check_circle,child_care,close,construction,crisis_alert,delete,egg,explore,favorite,favorite_border,group,groups,home,notifications,open_in_full,person,phishing,play_arrow,restaurant,sailing,schedule,science,search,shield,thermostat,tsunami,volume_up,warning,water,waves&display=block" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js" defer></script>
 <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.25/dist/lenis.css">
@@ -245,18 +245,10 @@
 <nav class="glass flex items-center justify-between px-6 py-2.5 border-x-0 border-t-0 flex-shrink-0" style="border-bottom:1px solid rgba(133,148,149,.2);position:relative;z-index:50;">
   <div class="flex items-center gap-7">
     <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:#d4e4fa;letter-spacing:-.03em;">LITTORA</div>
-    <style>
-      @keyframes navPremiumGlow {
-        0%, 100% { box-shadow: 0 0 8px rgba(0,240,255,0.35); }
-        50%      { box-shadow: 0 0 16px rgba(0,240,255,0.75); }
-      }
-      .nav-premium-link { animation: navPremiumGlow 2.6s ease-in-out infinite; border-radius: 9999px; padding: 4px 10px; }
-      @media (prefers-reduced-motion: reduce) { .nav-premium-link { animation: none !important; } }
-    </style>
     <div class="hidden lg:flex items-center gap-5">
-      <a href="index.html" class="nav-premium-link flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">home</span>Home</a>
-      <a href="explore-ocean.html" class="nav-premium-link flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">explore</span>Explore Ocean</a>
-      <a href="marine-life.html" class="nav-premium-link flex items-center gap-1.5 text-xs font-bold border-b" style="color:#00f0ff;border-color:#00f0ff;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">sailing</span>Marine Life</a>
+      <a href="index.html" class="flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">home</span>Home</a>
+      <a href="explore-ocean.html" class="flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">explore</span>Explore Ocean</a>
+      <a href="marine-life.html" class="flex items-center gap-1.5 text-xs font-bold border-b" style="color:#00f0ff;border-color:#00f0ff;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">sailing</span>Marine Life</a>
     </div>
   </div>
   <div class="flex items-center gap-2">
@@ -304,7 +296,7 @@
       <!-- video element — src swapped per species -->
       <video id="species-video" class="absolute inset-0 w-full h-full object-cover" muted loop playsinline preload="auto" style="opacity:.55;"></video>
       <!-- reference image shown behind placeholder (swap per species) -->
-      <img id="hero-ref-img" class="absolute inset-0 w-full h-full object-cover" style="opacity:.5;" alt="reference" fetchpriority="high" decoding="async"/>
+      <img id="hero-ref-img" class="absolute inset-0 w-full h-full object-cover" style="opacity:.5;" alt="reference" loading="lazy" decoding="async"/>
       <!-- overlay gradient -->
       <div class="absolute inset-0" style="background:radial-gradient(ellipse at 20% 20%,rgba(0,240,255,.08),transparent 55%),linear-gradient(180deg,rgba(2,10,20,.4) 0%,rgba(2,10,20,.2) 40%,rgba(2,10,20,.9) 100%);"></div>
       <!-- video placeholder shown when no src -->
@@ -360,7 +352,7 @@
       <div class="bc glass rounded-xl p-5 col-span-2">
         <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:12px;">HABITAT & RANGE</div>
         <div id="habitat-text" style="font-size:13px;color:#b9cacb;line-height:1.7;margin-bottom:14px;"></div>
-        <div id="habitat-map" class="ocean-map rounded-lg relative" style="height:200px;cursor:pointer;" onclick="openMapModal()"><img class="ocean-map-img" src="public/seaanimalsinfo/worldmap.webp" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div></div>
+        <div id="habitat-map" class="ocean-map rounded-lg relative" style="height:200px;cursor:pointer;" onclick="openMapModal()"><img class="ocean-map-img" src="public/seaanimalsinfo/worldmap.png" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div></div>
       </div>
       <div class="bc glass rounded-xl p-4 col-span-1">
         <div style="font-size:12px;font-weight:700;color:#00f0ff;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;margin-bottom:10px;">KNOWN LOCATIONS</div>
@@ -427,7 +419,7 @@
       <div style="font-size:12px;font-weight:700;color:#d4e4fa;letter-spacing:-.01em;">Habitat & Range</div>
       <span id="map-expand-btn" class="msym" style="font-size:14px;color:#b9cacb;cursor:pointer;" onclick="openMapModal()" title="Expand map">open_in_full</span>
     </div>
-    <div id="species-map" class="ocean-map rounded-lg mb-3 relative" style="height:110px;cursor:pointer;" onclick="openMapModal()"><img class="ocean-map-img" src="public/seaanimalsinfo/worldmap.webp" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div></div>
+    <div id="species-map" class="ocean-map rounded-lg mb-3 relative" style="height:110px;cursor:pointer;" onclick="openMapModal()"><img class="ocean-map-img" src="public/seaanimalsinfo/worldmap.png" alt="World map — replace with your own map image" loading="lazy" decoding="async"/><div class="ocean-map-tint"></div></div>
     <div class="flex gap-4" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#b9cacb;">
       <div class="flex items-center gap-1.5"><div style="width:7px;height:7px;border-radius:50%;background:#00f0ff;box-shadow:0 0 6px #00f0ff;"></div>Primary Habitat</div>
       <div class="flex items-center gap-1.5"><div style="width:14px;height:1.5px;background:linear-gradient(90deg,#00f0ff,transparent);border-radius:2px;"></div>Migration</div>
@@ -510,15 +502,15 @@ const SPECIES = [
     ],
     sightings:['Great Barrier Reef','Andaman Sea','Maldives','Costa Rica'],
     mapDots:[{x:'91.0%',y:'60.2%',label:'Great Barrier Reef'},{x:'76.4%',y:'44.4%',label:'Andaman Sea'},{x:'70.3%',y:'48.2%',label:'Maldives'},{x:'26.7%',y:'44.6%',label:'Costa Rica'}],
-    heroImageRef:'public/seaanimalsinfo/turtle-opt.webp',
+    heroImageRef:'public/seaanimalsinfo/turtle.png',
     sightingsImages:[
-      'public/seaanimalsinfo/barrierreef-sm.webp',
-      'public/seaanimalsinfo/andamansea_-sm.webp',
-      'public/seaanimalsinfo/Maldives-sm.webp',
-      'public/seaanimalsinfo/costarica-sm.webp'
+      'public/seaanimalsinfo/barrierreef.jpg',
+      'public/seaanimalsinfo/andamansea_.jpg',
+      'public/seaanimalsinfo/Maldives.jpg',
+      'public/seaanimalsinfo/costarica.jpg'
     ],
     videoLabel:'Sea Turtle Documentary Clip',
-    videoSrc:'public/seaanimalsinfo/turtle-opt.mp4',
+    videoSrc:'public/seaanimalsinfo/turtle.mp4',
   },
   {
     id:'blue-whale',
@@ -553,7 +545,7 @@ const SPECIES = [
     ],
     sightings:['Antarctic Ocean','Sri Lanka Coast','Gulf of California','Azores Islands'],
     mapDots:[{x:'33.9%',y:'85.0%',label:'Antarctic Ocean'},{x:'72.4%',y:'45.8%',label:'Sri Lanka Coast'},{x:'19.0%',y:'34.7%',label:'Gulf of California'},{x:'42.4%',y:'28.5%',label:'Azores Islands'}],
-    heroImageRef:'public/seaanimalsinfo/whale-opt.webp',
+    heroImageRef:'public/seaanimalsinfo/whale.png',
     sightingsImages:[
       'public/seaanimalsinfo/antartica.jpg',
       'public/seaanimalsinfo/srilanka.jpg',
@@ -596,7 +588,7 @@ const SPECIES = [
     ],
     sightings:['Gulf of Mexico','Mediterranean Sea','Shark Bay Australia','Moray Firth UK'],
     mapDots:[{x:'25.0%',y:'36.1%',label:'Gulf of Mexico'},{x:'55.0%',y:'30.6%',label:'Mediterranean Sea'},{x:'81.5%',y:'64.3%',label:'Shark Bay Australia'},{x:'48.9%',y:'17.9%',label:'Moray Firth UK'}],
-    heroImageRef:'public/seaanimalsinfo/dolphin-opt.webp',
+    heroImageRef:'public/seaanimalsinfo/dolphin.png',
     sightingsImages:[
       'public/seaanimalsinfo/gulfmexico.jpg',
       'public/seaanimalsinfo/mediterranean.jpg',
@@ -639,9 +631,9 @@ const SPECIES = [
     ],
     sightings:['Maldives','Coral Triangle','Socorro Island','Yucatán Mexico'],
     mapDots:[{x:'70.3%',y:'48.2%',label:'Maldives'},{x:'86.1%',y:'51.1%',label:'Coral Triangle'},{x:'19.2%',y:'39.6%',label:'Socorro Island'},{x:'25.7%',y:'38.6%',label:'Yucatan Mexico'}],
-    heroImageRef:'public/seaanimalsinfo/mantle-opt.webp',
+    heroImageRef:'public/seaanimalsinfo/mantle.png',
     sightingsImages:[
-      'public/seaanimalsinfo/Maldives-sm.webp',
+      'public/seaanimalsinfo/Maldives.jpg',
       'public/seaanimalsinfo/coraltriangle.jpg',
       'public/seaanimalsinfo/socorro.jpg',
       'public/seaanimalsinfo/yucatan.jpg'
@@ -682,7 +674,7 @@ const SPECIES = [
     ],
     sightings:['North Sea','Baltic Sea','Chesapeake Bay','Tokyo Bay Japan'],
     mapDots:[{x:'50.8%',y:'18.9%',label:'North Sea'},{x:'55.6%',y:'17.8%',label:'Baltic Sea'},{x:'28.8%',y:'29.2%',label:'Chesapeake Bay'},{x:'88.8%',y:'30.3%',label:'Tokyo Bay Japan'}],
-    heroImageRef:'public/seaanimalsinfo/jellyfish_-opt.webp',
+    heroImageRef:'public/seaanimalsinfo/jellyfish_.png',
     sightingsImages:[
       'public/seaanimalsinfo/northsea_.jpg',
       'public/seaanimalsinfo/baltiksea.jpg',
@@ -725,9 +717,9 @@ const SPECIES = [
     ],
     sightings:['Great Barrier Reef','Red Sea','Coral Triangle','Thailand Gulf'],
     mapDots:[{x:'91.0%',y:'60.2%',label:'Great Barrier Reef'},{x:'60.6%',y:'38.9%',label:'Red Sea'},{x:'86.1%',y:'51.1%',label:'Coral Triangle'},{x:'78.1%',y:'44.4%',label:'Thailand Gulf'}],
-    heroImageRef:'public/seaanimalsinfo/clownfish-opt.webp',
+    heroImageRef:'public/seaanimalsinfo/clownfish.png',
     sightingsImages:[
-      'public/seaanimalsinfo/barrierreef-sm.webp',
+      'public/seaanimalsinfo/barrierreef.jpg',
       'public/seaanimalsinfo/redsea.jpg',
       'public/seaanimalsinfo/coraltriangle.jpg',
       'public/seaanimalsinfo/thailandgulf.jpg'
@@ -1223,7 +1215,7 @@ window.addEventListener('load',()=>{
 // ============================================================
 //  MAP EXPAND MODAL
 // ============================================================
-const MAP_IMG_SRC = "public/seaanimalsinfo/worldmap.webp";
+const MAP_IMG_SRC = "public/seaanimalsinfo/worldmap.png";
 function openMapModal(){
   if(!currentSpecies) return;
   const overlay=document.getElementById('map-modal-overlay');
@@ -1263,4 +1255,18 @@ window.addEventListener('resize', ()=>{
 });
 
 function goBack(){
-  // scr
+  // scroll sidebar into view and give it a soft highlight pulse
+  const list=document.getElementById('species-list');
+  if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ============================================================
+//  BOOT
+// ============================================================
+currentSpecies=SPECIES[0];
+buildSidebar(SPECIES);
+renderSpeciesContent(SPECIES[0]);
+setTimeout(()=>moveTabIndicator(), 60);
+</script>
+</body>
+</html>

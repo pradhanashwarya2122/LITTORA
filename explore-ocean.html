@@ -3,17 +3,12 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Littora - Explore Ocean</title>
-<link rel="preconnect" href="https://cdn.tailwindcss.com">
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link rel="preconnect" href="https://threejs.org">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;icon_names=account_circle,air,arrow_back_ios,arrow_downward,arrow_forward,arrow_upward,chevron_right,close,device_thermostat,explore,flight,home,image,location_on,notifications,pets,recycling,scatter_plot,schedule,search,set_meal,shield,star_border,trip_origin,tsunami,tune,visibility,warning,water,water_drop,waves&amp;display=block" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer=""></script>
-<script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js" defer=""></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
 <script id="tailwind-config">
   tailwind.config = {
     darkMode: "class",
@@ -251,18 +246,10 @@
 <p class="text-[10px] uppercase tracking-widest text-on-surface-variant leading-none">Marine Intelligence</p>
 </div>
 </div>
-<style>
-  @keyframes navPremiumGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(0,174,239,0.45), 0 0 0 1px rgba(255,255,255,0.25) inset; }
-    50%      { box-shadow: 0 0 18px rgba(0,174,239,0.85), 0 0 22px rgba(6,182,212,0.45), 0 0 0 1px rgba(255,255,255,0.4) inset; }
-  }
-  .nav-premium-link { animation: navPremiumGlow 2.6s ease-in-out infinite; }
-  @media (prefers-reduced-motion: reduce) { .nav-premium-link { animation: none !important; } }
-</style>
 <div class="hidden lg:flex items-center gap-1 bg-surface-container-low rounded-full p-1">
-<a class="nav-premium-link flex items-center gap-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-full px-4 py-1.5 transition-all text-body-md font-body-md" href="index.html"><span class="material-symbols-outlined text-lg">home</span>Home</a>
-<a class="nav-premium-link flex items-center gap-2 text-primary font-bold bg-secondary-container rounded-full px-4 py-1.5 transition-all text-body-md font-body-md shadow-sm" href="explore-ocean.html"><span class="material-symbols-outlined text-lg">explore</span>Explore Ocean</a>
-<a class="nav-premium-link flex items-center gap-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-full px-4 py-1.5 transition-all text-body-md font-body-md" href="marine-life.html"><span class="material-symbols-outlined text-lg">set_meal</span>Marine Life</a>
+<a class="flex items-center gap-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-full px-4 py-1.5 transition-all text-body-md font-body-md" href="index.html"><span class="material-symbols-outlined text-lg">home</span>Home</a>
+<a class="flex items-center gap-2 text-primary font-bold bg-secondary-container rounded-full px-4 py-1.5 transition-all text-body-md font-body-md shadow-sm" href="explore-ocean.html"><span class="material-symbols-outlined text-lg">explore</span>Explore Ocean</a>
+<a class="flex items-center gap-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-full px-4 py-1.5 transition-all text-body-md font-body-md" href="marine-life.html"><span class="material-symbols-outlined text-lg">set_meal</span>Marine Life</a>
 </div>
 <div class="flex items-center gap-4 text-on-surface-variant">
 <button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">search</span></button>
@@ -399,7 +386,7 @@
    file — or update BASE_IMG below — and every card/thumbnail lights
    up automatically. Until then a themed gradient fallback is shown.
    ============================================================ */
-const BASE_IMG = 'public/seaanimalsinfo/';
+const BASE_IMG = 'seaanimalsinfo/';
 const SPECIES = [
   { name: 'Clownfish',  img: BASE_IMG+'clownfish.png', video: BASE_IMG+'clownfish.mp4' },
   { name: 'Green Sea Turtle', img: BASE_IMG+'turtle.png', video: BASE_IMG+'turtle.mp4' },
@@ -410,91 +397,91 @@ const SPECIES = [
 ];
 
 const LOCATIONS = [
-  { id: 'maldives', name: 'Maldives', country: 'Maldives', coords: '3.2028° N, 73.2207° E', tag: 'High Biodiversity', regionScore: 92, status: 'Excellent', image: BASE_IMG+'Maldives-sm.webp', fb: 0,
+  { id: 'maldives', name: 'Maldives', country: 'Maldives', coords: '3.2028° N, 73.2207° E', tag: 'High Biodiversity', regionScore: 92, status: 'Excellent', image: BASE_IMG+'Maldives.jpg', fb: 0,
     metrics: { waterTemp: '28.1 °C', waterTempTrend: '0.6°C', waterQuality: 'Excellent', coralHealth: '89%', biodiversity: '94%', plasticDensity: '0.4 kg/km²', waveHeight: '0.4 m' },
     env: { current: '0.5 m/s', salinity: '36 PSU', visibility: '30 m', wind: '14 km/h', tide: 'Falling' },
     survey: { title: 'Coral reef observed in pristine condition', id: 'DRN-2025-0612', time: '1 hr ago', dist: '2.1 km' } },
-  { id: 'gbr', name: 'Great Barrier Reef', country: 'Australia', coords: '18.2871° S, 147.6992° E', tag: 'Coral Diversity', regionScore: 88, status: 'Good', image: BASE_IMG+'barrierreef-sm.webp', fb: 1,
+  { id: 'gbr', name: 'Great Barrier Reef', country: 'Australia', coords: '18.2871° S, 147.6992° E', tag: 'Coral Diversity', regionScore: 88, status: 'Good', image: BASE_IMG+'barrierreef.jpg', fb: 1,
     metrics: { waterTemp: '26.3 °C', waterTempTrend: '0.9°C', waterQuality: 'Good', coralHealth: '81%', biodiversity: '90%', plasticDensity: '0.8 kg/km²', waveHeight: '0.9 m' },
     env: { current: '1.1 m/s', salinity: '35 PSU', visibility: '18 m', wind: '20 km/h', tide: 'Rising' },
     survey: { title: 'Bleaching risk low across surveyed sector', id: 'DRN-2025-0598', time: '4 hrs ago', dist: '6.5 km' } },
-  { id: 'bali', name: 'Bali Coast', country: 'Indonesia', coords: '8.4095° S, 115.1889° E', tag: 'Coral Triangle', regionScore: 76, status: 'Good', image: BASE_IMG+'coraltriangle-sm.webp', fb: 2,
+  { id: 'bali', name: 'Bali Coast', country: 'Indonesia', coords: '8.4095° S, 115.1889° E', tag: 'Coral Triangle', regionScore: 76, status: 'Good', image: BASE_IMG+'coraltriangle.jpg', fb: 2,
     metrics: { waterTemp: '25.4 °C', waterTempTrend: '1.2°C', waterQuality: 'Good', coralHealth: '72%', biodiversity: '68%', plasticDensity: '1.2 kg/km²', waveHeight: '0.6 m' },
     env: { current: '0.8 m/s', salinity: '35 PSU', visibility: '20 m', wind: '12 km/h', tide: 'Rising' },
     survey: { title: 'Coral reef observed in good condition', id: 'DRN-2025-0587', time: '2 hrs ago', dist: '4.2 km' } },
-  { id: 'andaman', name: 'Andaman Sea', country: 'Thailand / India', coords: '10.0000° N, 96.0000° E', tag: 'Marine Life', regionScore: 85, status: 'Good', image: BASE_IMG+'andamansea_-sm.webp', fb: 3,
+  { id: 'andaman', name: 'Andaman Sea', country: 'Thailand / India', coords: '10.0000° N, 96.0000° E', tag: 'Marine Life', regionScore: 85, status: 'Good', image: BASE_IMG+'andamansea_.jpg', fb: 3,
     metrics: { waterTemp: '27.0 °C', waterTempTrend: '0.7°C', waterQuality: 'Good', coralHealth: '77%', biodiversity: '83%', plasticDensity: '0.9 kg/km²', waveHeight: '0.7 m' },
     env: { current: '0.6 m/s', salinity: '34 PSU', visibility: '22 m', wind: '11 km/h', tide: 'Falling' },
     survey: { title: 'Healthy fish population density recorded', id: 'DRN-2025-0603', time: '3 hrs ago', dist: '3.8 km' } },
-  { id: 'seychelles', name: 'Seychelles', country: 'Seychelles', coords: '4.6796° S, 55.4920° E', tag: 'Conservation Area', regionScore: 90, status: 'Excellent', image: BASE_IMG+'costarica-sm.webp', fb: 4,
+  { id: 'seychelles', name: 'Seychelles', country: 'Seychelles', coords: '4.6796° S, 55.4920° E', tag: 'Conservation Area', regionScore: 90, status: 'Excellent', image: BASE_IMG+'costarica.jpg', fb: 4,
     metrics: { waterTemp: '27.6 °C', waterTempTrend: '0.5°C', waterQuality: 'Excellent', coralHealth: '85%', biodiversity: '88%', plasticDensity: '0.5 kg/km²', waveHeight: '0.5 m' },
     env: { current: '0.4 m/s', salinity: '35 PSU', visibility: '28 m', wind: '13 km/h', tide: 'Rising' },
     survey: { title: 'Protected zone boundary compliance confirmed', id: 'DRN-2025-0620', time: '5 hrs ago', dist: '1.9 km' } },
-  { id: 'redsea', name: 'Red Sea Reefs', country: 'Egypt / Saudi Arabia', coords: '22.3000° N, 38.5000° E', tag: 'Thermal Refuge', regionScore: 91, status: 'Excellent', image: BASE_IMG+'redsea-sm.webp', fb: 5,
+  { id: 'redsea', name: 'Red Sea Reefs', country: 'Egypt / Saudi Arabia', coords: '22.3000° N, 38.5000° E', tag: 'Thermal Refuge', regionScore: 91, status: 'Excellent', image: BASE_IMG+'redsea.jpg', fb: 5,
     metrics: { waterTemp: '27.2 °C', waterTempTrend: '0.3°C', waterQuality: 'Excellent', coralHealth: '93%', biodiversity: '86%', plasticDensity: '0.3 kg/km²', waveHeight: '0.3 m' },
     env: { current: '0.3 m/s', salinity: '40 PSU', visibility: '32 m', wind: '10 km/h', tide: 'Falling' },
     survey: { title: 'Heat-resistant coral strain thriving', id: 'DRN-2025-0641', time: '6 hrs ago', dist: '5.4 km' } },
-  { id: 'srilanka', name: 'Sri Lanka Coast', country: 'Sri Lanka', coords: '6.9271° N, 79.8612° E', tag: 'Whale Migration', regionScore: 79, status: 'Good', image: BASE_IMG+'srilanka-sm.webp', fb: 0,
+  { id: 'srilanka', name: 'Sri Lanka Coast', country: 'Sri Lanka', coords: '6.9271° N, 79.8612° E', tag: 'Whale Migration', regionScore: 79, status: 'Good', image: BASE_IMG+'srilanka.jpg', fb: 0,
     metrics: { waterTemp: '28.5 °C', waterTempTrend: '0.8°C', waterQuality: 'Good', coralHealth: '65%', biodiversity: '81%', plasticDensity: '1.4 kg/km²', waveHeight: '0.8 m' },
     env: { current: '0.9 m/s', salinity: '34 PSU', visibility: '16 m', wind: '17 km/h', tide: 'Rising' },
     survey: { title: 'Blue whale pod tracked offshore', id: 'DRN-2025-0629', time: '2 hrs ago', dist: '9.7 km' } },
-  { id: 'thailandgulf', name: 'Gulf of Thailand', country: 'Thailand', coords: '10.0000° N, 101.0000° E', tag: 'Seagrass Meadows', regionScore: 71, status: 'Fair', image: BASE_IMG+'thailandgulf-sm.webp', fb: 1,
+  { id: 'thailandgulf', name: 'Gulf of Thailand', country: 'Thailand', coords: '10.0000° N, 101.0000° E', tag: 'Seagrass Meadows', regionScore: 71, status: 'Fair', image: BASE_IMG+'thailandgulf.jpg', fb: 1,
     metrics: { waterTemp: '29.0 °C', waterTempTrend: '1.4°C', waterQuality: 'Fair', coralHealth: '58%', biodiversity: '64%', plasticDensity: '2.1 kg/km²', waveHeight: '0.5 m' },
     env: { current: '0.4 m/s', salinity: '32 PSU', visibility: '9 m', wind: '9 km/h', tide: 'Falling' },
     survey: { title: 'Seagrass density stable near baseline', id: 'DRN-2025-0587', time: '8 hrs ago', dist: '3.1 km' } },
-  { id: 'tokyobay', name: 'Tokyo Bay', country: 'Japan', coords: '35.4437° N, 139.6380° E', tag: 'Urban Coastline', regionScore: 58, status: 'Fair', image: BASE_IMG+'tokyobay_-sm.webp', fb: 2,
+  { id: 'tokyobay', name: 'Tokyo Bay', country: 'Japan', coords: '35.4437° N, 139.6380° E', tag: 'Urban Coastline', regionScore: 58, status: 'Fair', image: BASE_IMG+'tokyobay_.jpg', fb: 2,
     metrics: { waterTemp: '19.8 °C', waterTempTrend: '0.4°C', waterQuality: 'Fair', coralHealth: '—', biodiversity: '46%', plasticDensity: '4.6 kg/km²', waveHeight: '0.5 m' },
     env: { current: '0.7 m/s', salinity: '31 PSU', visibility: '6 m', wind: '19 km/h', tide: 'Rising' },
     survey: { title: 'Microplastic concentration flagged near port', id: 'DRN-2025-0655', time: '40 min ago', dist: '1.2 km' } },
-  { id: 'antarctica', name: 'Antarctic Sound', country: 'Antarctica', coords: '63.4000° S, 56.8000° W', tag: 'Polar Ecosystem', regionScore: 95, status: 'Pristine', image: BASE_IMG+'antartica-sm.webp', fb: 3,
+  { id: 'antarctica', name: 'Antarctic Sound', country: 'Antarctica', coords: '63.4000° S, 56.8000° W', tag: 'Polar Ecosystem', regionScore: 95, status: 'Pristine', image: BASE_IMG+'antartica.jpg', fb: 3,
     metrics: { waterTemp: '1.2 °C', waterTempTrend: '0.2°C', waterQuality: 'Excellent', coralHealth: '—', biodiversity: '77%', plasticDensity: '0.1 kg/km²', waveHeight: '1.1 m' },
     env: { current: '0.6 m/s', salinity: '34 PSU', visibility: '35 m', wind: '28 km/h', tide: 'Rising' },
     survey: { title: 'Krill swarm density at seasonal high', id: 'DRN-2025-0602', time: '7 hrs ago', dist: '11.3 km' } },
-  { id: 'azores', name: 'Azores Seamounts', country: 'Portugal', coords: '37.7412° N, 25.6756° W', tag: 'Deep-Sea Corridor', regionScore: 87, status: 'Excellent', image: BASE_IMG+'azores-sm.webp', fb: 4,
+  { id: 'azores', name: 'Azores Seamounts', country: 'Portugal', coords: '37.7412° N, 25.6756° W', tag: 'Deep-Sea Corridor', regionScore: 87, status: 'Excellent', image: BASE_IMG+'azores.jpg', fb: 4,
     metrics: { waterTemp: '21.4 °C', waterTempTrend: '0.5°C', waterQuality: 'Excellent', coralHealth: '80%', biodiversity: '79%', plasticDensity: '0.6 kg/km²', waveHeight: '1.4 m' },
     env: { current: '1.3 m/s', salinity: '36 PSU', visibility: '24 m', wind: '22 km/h', tide: 'Falling' },
     survey: { title: 'Sperm whale acoustic activity recorded', id: 'DRN-2025-0611', time: '3 hrs ago', dist: '14.8 km' } },
-  { id: 'baltic', name: 'Baltic Sea', country: 'Northern Europe', coords: '58.0000° N, 20.0000° E', tag: 'Brackish Basin', regionScore: 49, status: 'Poor', image: BASE_IMG+'baltiksea-sm.webp', fb: 5,
+  { id: 'baltic', name: 'Baltic Sea', country: 'Northern Europe', coords: '58.0000° N, 20.0000° E', tag: 'Brackish Basin', regionScore: 49, status: 'Poor', image: BASE_IMG+'baltiksea.jpg', fb: 5,
     metrics: { waterTemp: '11.6 °C', waterTempTrend: '0.7°C', waterQuality: 'Poor', coralHealth: '—', biodiversity: '38%', plasticDensity: '3.8 kg/km²', waveHeight: '0.9 m' },
     env: { current: '0.5 m/s', salinity: '8 PSU', visibility: '5 m', wind: '24 km/h', tide: 'Rising' },
     survey: { title: 'Oxygen-depleted dead zone expanding', id: 'DRN-2025-0648', time: '55 min ago', dist: '2.6 km' } },
-  { id: 'chesapeake', name: 'Chesapeake Bay', country: 'United States', coords: '37.5000° N, 76.0000° W', tag: 'Estuary Recovery', regionScore: 63, status: 'Fair', image: BASE_IMG+'Chesapeake-sm.webp', fb: 0,
+  { id: 'chesapeake', name: 'Chesapeake Bay', country: 'United States', coords: '37.5000° N, 76.0000° W', tag: 'Estuary Recovery', regionScore: 63, status: 'Fair', image: BASE_IMG+'Chesapeake.jpg', fb: 0,
     metrics: { waterTemp: '18.9 °C', waterTempTrend: '0.6°C', waterQuality: 'Fair', coralHealth: '—', biodiversity: '55%', plasticDensity: '2.4 kg/km²', waveHeight: '0.3 m' },
     env: { current: '0.3 m/s', salinity: '14 PSU', visibility: '4 m', wind: '15 km/h', tide: 'Falling' },
     survey: { title: 'Oyster reef restoration showing gains', id: 'DRN-2025-0633', time: '5 hrs ago', dist: '1.6 km' } },
-  { id: 'costarica_pac', name: 'Costa Rica Pacific', country: 'Costa Rica', coords: '9.7489° N, 83.7534° W', tag: 'Nursery Grounds', regionScore: 84, status: 'Good', image: BASE_IMG+'costarica-sm.webp', fb: 1,
+  { id: 'costarica_pac', name: 'Costa Rica Pacific', country: 'Costa Rica', coords: '9.7489° N, 83.7534° W', tag: 'Nursery Grounds', regionScore: 84, status: 'Good', image: BASE_IMG+'costarica.jpg', fb: 1,
     metrics: { waterTemp: '27.8 °C', waterTempTrend: '0.6°C', waterQuality: 'Good', coralHealth: '69%', biodiversity: '82%', plasticDensity: '0.9 kg/km²', waveHeight: '1.0 m' },
     env: { current: '0.9 m/s', salinity: '34 PSU', visibility: '19 m', wind: '13 km/h', tide: 'Rising' },
     survey: { title: 'Hammerhead shark nursery confirmed', id: 'DRN-2025-0617', time: '2 hrs ago', dist: '7.2 km' } },
-  { id: 'gulfcalifornia', name: 'Gulf of California', country: 'Mexico', coords: '27.9500° N, 111.4700° W', tag: "World's Aquarium", regionScore: 82, status: 'Good', image: BASE_IMG+'gulfcalifornia-sm.webp', fb: 2,
+  { id: 'gulfcalifornia', name: 'Gulf of California', country: 'Mexico', coords: '27.9500° N, 111.4700° W', tag: "World's Aquarium", regionScore: 82, status: 'Good', image: BASE_IMG+'gulfcalifornia.jpg', fb: 2,
     metrics: { waterTemp: '24.6 °C', waterTempTrend: '0.9°C', waterQuality: 'Good', coralHealth: '61%', biodiversity: '89%', plasticDensity: '1.1 kg/km²', waveHeight: '0.7 m' },
     env: { current: '1.0 m/s', salinity: '35 PSU', visibility: '21 m', wind: '16 km/h', tide: 'Falling' },
     survey: { title: 'Mobula ray aggregation observed', id: 'DRN-2025-0624', time: '90 min ago', dist: '4.9 km' } },
-  { id: 'gulfmexico', name: 'Gulf of Mexico', country: 'United States / Mexico', coords: '25.0000° N, 90.0000° W', tag: 'Industrial Watch', regionScore: 54, status: 'Fair', image: BASE_IMG+'gulfmexico-sm.webp', fb: 3,
+  { id: 'gulfmexico', name: 'Gulf of Mexico', country: 'United States / Mexico', coords: '25.0000° N, 90.0000° W', tag: 'Industrial Watch', regionScore: 54, status: 'Fair', image: BASE_IMG+'gulfmexico.jpg', fb: 3,
     metrics: { waterTemp: '26.1 °C', waterTempTrend: '1.1°C', waterQuality: 'Fair', coralHealth: '47%', biodiversity: '52%', plasticDensity: '3.2 kg/km²', waveHeight: '0.8 m' },
     env: { current: '0.8 m/s', salinity: '33 PSU', visibility: '10 m', wind: '18 km/h', tide: 'Rising' },
     survey: { title: 'Hypoxic zone boundary resurveyed', id: 'DRN-2025-0639', time: '3 hrs ago', dist: '8.4 km' } },
-  { id: 'mediterranean', name: 'Mediterranean Sea', country: 'Southern Europe', coords: '35.0000° N, 18.0000° E', tag: 'Warming Hotspot', regionScore: 66, status: 'Fair', image: BASE_IMG+'mediterranean-sm.webp', fb: 4,
+  { id: 'mediterranean', name: 'Mediterranean Sea', country: 'Southern Europe', coords: '35.0000° N, 18.0000° E', tag: 'Warming Hotspot', regionScore: 66, status: 'Fair', image: BASE_IMG+'mediterranean.jpg', fb: 4,
     metrics: { waterTemp: '24.3 °C', waterTempTrend: '1.6°C', waterQuality: 'Fair', coralHealth: '54%', biodiversity: '60%', plasticDensity: '2.7 kg/km²', waveHeight: '0.6 m' },
     env: { current: '0.6 m/s', salinity: '38 PSU', visibility: '17 m', wind: '14 km/h', tide: 'Falling' },
     survey: { title: 'Invasive species range expansion logged', id: 'DRN-2025-0645', time: '4 hrs ago', dist: '2.9 km' } },
-  { id: 'morayfirth', name: 'Moray Firth', country: 'Scotland', coords: '57.6500° N, 3.9000° W', tag: 'Dolphin Sanctuary', regionScore: 80, status: 'Good', image: BASE_IMG+'morayfirth-sm.webp', fb: 5,
+  { id: 'morayfirth', name: 'Moray Firth', country: 'Scotland', coords: '57.6500° N, 3.9000° W', tag: 'Dolphin Sanctuary', regionScore: 80, status: 'Good', image: BASE_IMG+'morayfirth.jpg', fb: 5,
     metrics: { waterTemp: '12.4 °C', waterTempTrend: '0.4°C', waterQuality: 'Good', coralHealth: '—', biodiversity: '73%', plasticDensity: '1.0 kg/km²', waveHeight: '1.2 m' },
     env: { current: '0.9 m/s', salinity: '34 PSU', visibility: '12 m', wind: '26 km/h', tide: 'Rising' },
     survey: { title: 'Resident bottlenose pod headcount stable', id: 'DRN-2025-0608', time: '6 hrs ago', dist: '3.4 km' } },
-  { id: 'northsea', name: 'North Sea', country: 'Northern Europe', coords: '56.0000° N, 3.0000° E', tag: 'Offshore Wind Zone', regionScore: 61, status: 'Fair', image: BASE_IMG+'northsea_-sm.webp', fb: 0,
+  { id: 'northsea', name: 'North Sea', country: 'Northern Europe', coords: '56.0000° N, 3.0000° E', tag: 'Offshore Wind Zone', regionScore: 61, status: 'Fair', image: BASE_IMG+'northsea_.jpg', fb: 0,
     metrics: { waterTemp: '13.7 °C', waterTempTrend: '0.5°C', waterQuality: 'Fair', coralHealth: '—', biodiversity: '57%', plasticDensity: '1.9 kg/km²', waveHeight: '1.6 m' },
     env: { current: '1.2 m/s', salinity: '35 PSU', visibility: '8 m', wind: '31 km/h', tide: 'Falling' },
     survey: { title: 'Turbine-base reef effect under review', id: 'DRN-2025-0651', time: '75 min ago', dist: '6.0 km' } },
-  { id: 'montereypark', name: 'Monterey Bay', country: 'United States', coords: '36.6002° N, 121.8947° W', tag: 'Kelp Forest', regionScore: 86, status: 'Excellent', image: BASE_IMG+'parkbay-sm.webp', fb: 1,
+  { id: 'montereypark', name: 'Monterey Bay', country: 'United States', coords: '36.6002° N, 121.8947° W', tag: 'Kelp Forest', regionScore: 86, status: 'Excellent', image: BASE_IMG+'parkbay.jpg', fb: 1,
     metrics: { waterTemp: '14.2 °C', waterTempTrend: '0.3°C', waterQuality: 'Excellent', coralHealth: '—', biodiversity: '85%', plasticDensity: '0.5 kg/km²', waveHeight: '1.0 m' },
     env: { current: '0.7 m/s', salinity: '33 PSU', visibility: '15 m', wind: '17 km/h', tide: 'Rising' },
     survey: { title: 'Sea otter kelp-grazing balance healthy', id: 'DRN-2025-0596', time: '2 hrs ago', dist: '1.4 km' } },
-  { id: 'socorro', name: 'Socorro Island', country: 'Mexico', coords: '18.7833° N, 110.9667° W', tag: 'Pelagic Corridor', regionScore: 89, status: 'Excellent', image: BASE_IMG+'socorro-sm.webp', fb: 2,
+  { id: 'socorro', name: 'Socorro Island', country: 'Mexico', coords: '18.7833° N, 110.9667° W', tag: 'Pelagic Corridor', regionScore: 89, status: 'Excellent', image: BASE_IMG+'socorro.jpg', fb: 2,
     metrics: { waterTemp: '25.9 °C', waterTempTrend: '0.4°C', waterQuality: 'Excellent', coralHealth: '75%', biodiversity: '91%', plasticDensity: '0.4 kg/km²', waveHeight: '1.3 m' },
     env: { current: '1.4 m/s', salinity: '35 PSU', visibility: '33 m', wind: '15 km/h', tide: 'Falling' },
     survey: { title: 'Giant manta cleaning station active', id: 'DRN-2025-0614', time: '100 min ago', dist: '5.7 km' } },
-  { id: 'yucatan', name: 'Yucatán Peninsula', country: 'Mexico', coords: '20.7099° N, 87.0739° W', tag: 'Cenote Network', regionScore: 78, status: 'Good', image: BASE_IMG+'yucatan-sm.webp', fb: 3,
+  { id: 'yucatan', name: 'Yucatán Peninsula', country: 'Mexico', coords: '20.7099° N, 87.0739° W', tag: 'Cenote Network', regionScore: 78, status: 'Good', image: BASE_IMG+'yucatan.jpg', fb: 3,
     metrics: { waterTemp: '27.1 °C', waterTempTrend: '0.7°C', waterQuality: 'Good', coralHealth: '70%', biodiversity: '76%', plasticDensity: '1.0 kg/km²', waveHeight: '0.5 m' },
     env: { current: '0.5 m/s', salinity: '36 PSU', visibility: '26 m', wind: '12 km/h', tide: 'Rising' },
     survey: { title: 'Whale shark aggregation season begins', id: 'DRN-2025-0626', time: '30 min ago', dist: '3.0 km' } }
@@ -704,24 +691,19 @@ renderRightPanel(LOCATIONS.find(l=>l.id==='bali'));
    ============================================================ */
 function initVanta(){
   if (typeof VANTA === 'undefined') { setTimeout(initVanta, 150); return; }
-  // Single fog instance behind the whole app. A second instance used to run
-  // behind the globe iframe too (#vanta-globe-bg) purely for a subtle depth
-  // effect, but running two concurrent WebGL animation loops (plus the
-  // globe iframe's own Three.js scene) was pinning the main thread for
-  // 20+ seconds of blocking time under throttled CPU. Mouse/touch controls
-  // are also disabled since the per-frame raycasting they do was a large
-  // share of that cost and this is a background ambient effect only.
-  const vantaBgEffect = VANTA.FOG({
+  VANTA.FOG({
     el: "#vanta-bg",
-    mouseControls: false, touchControls: false, gyroControls: false,
+    mouseControls: true, touchControls: true, gyroControls: false,
     minHeight: 200.00, minWidth: 200.00,
     highlightColor: 0x6FEAFF, midtoneColor: 0x00AEEF, lowlightColor: 0x004D99, baseColor: 0x021325,
     blurFactor: 0.80, speed: 0.25, zoom: 0.90
   });
-  document.addEventListener('visibilitychange', () => {
-    if (!vantaBgEffect) return;
-    if (document.hidden) vantaBgEffect.pause?.();
-    else vantaBgEffect.resume?.();
+  VANTA.FOG({
+    el: "#vanta-globe-bg",
+    mouseControls: true, touchControls: true, gyroControls: false,
+    minHeight: 200.00, minWidth: 200.00,
+    highlightColor: 0x6FEAFF, midtoneColor: 0x00AEEF, lowlightColor: 0x004D99, baseColor: 0x021325,
+    blurFactor: 0.85, speed: 0.2, zoom: 1.1
   });
 }
 initVanta();
@@ -730,4 +712,41 @@ initVanta();
    MAGIC BENTO — spotlight glow + tilt + ripple, applied to
    every .bento-card on the page (re-scans after each re-render)
    ============================================================ */
-function at
+function attachBento(scope){
+  (scope || document).querySelectorAll('.bento-card:not([data-bento-bound])').forEach(card => {
+    card.setAttribute('data-bento-bound', '1');
+    const grid = card.closest('.bento-grid');
+    card.addEventListener('mousemove', (e) => {
+      const r = card.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const px = (x / r.width) * 100, py = (y / r.height) * 100;
+      card.style.setProperty('--glow-x', px + '%');
+      card.style.setProperty('--glow-y', py + '%');
+      card.style.setProperty('--glow-intensity', '1');
+      const rotX = ((y / r.height) - 0.5) * -6;
+      const rotY = ((x / r.width) - 0.5) * 6;
+      card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-2px)`;
+      card.classList.add('tilting');
+      if (grid) grid.classList.add('has-hover');
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.setProperty('--glow-intensity', '0');
+      card.style.transform = '';
+      card.classList.remove('tilting');
+      if (grid) grid.classList.remove('has-hover');
+    });
+    card.addEventListener('click', (e) => {
+      const r = card.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'bento-ripple';
+      ripple.style.left = (e.clientX - r.left) + 'px';
+      ripple.style.top = (e.clientY - r.top) + 'px';
+      card.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 800);
+    });
+  });
+}
+attachBento();
+</script>
+</body>
+</html>
