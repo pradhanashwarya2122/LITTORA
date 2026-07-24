@@ -4,17 +4,9 @@
 
 ### **Explore the Ocean. Understand Its Story. Protect Its Future.**
 
-<img src="https://readme-typing-svg.herokuapp.com?font=Montserrat&weight=700&size=24&duration=3000&pause=1200&color=4FD8FF&center=true&vCenter=true&width=850&lines=Marine+Digital+Twin;Ocean+Health+Visualization;Marine+Biodiversity+Explorer;AI-assisted+Environmental+Insights;HackOcean+2026"/>
-
-<br>
-
-<img src="assets/gifs/hero.gif" width="100%"/>
-
-<br>
-
-<img src="assets/gifs/loading.gif" width="45%"/>
-
-<br>
+<p align="center">
+  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjVidmV3dG0yZTM2aWk0Z3JkZW1wMm9pbWpkcTczdWVlYTF5dDl0biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/Y4K9JjSigTV1FkgiNE/giphy.gif" width="700">
+</p>
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
