@@ -946,16 +946,50 @@
        normal dark-on-white, matching the rest of the site. */
     .hiw-borderglow .hiw-step-title { color: #111827; }
     .hiw-borderglow .hiw-step-desc { color: #6b7280; }
+
+    /* ===== Premium nav highlight: Home / Explore Ocean / Marine Life ===== */
+    @keyframes navPremiumGlow {
+      0%, 100% { box-shadow: 0 0 10px rgba(96,165,250,0.55), 0 0 0 1px rgba(255,255,255,0.25) inset; }
+      50%      { box-shadow: 0 0 20px rgba(96,165,250,0.95), 0 0 26px rgba(6,182,212,0.5), 0 0 0 1px rgba(255,255,255,0.4) inset; }
+    }
+    .nav-premium-link {
+      position: relative;
+    }
+    .nav-premium-link > a {
+      position: relative;
+      z-index: 1;
+      font-weight: 700 !important;
+      letter-spacing: 0.01em;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, rgba(96,165,250,0.28), rgba(6,182,212,0.22));
+      border: 1px solid rgba(255,255,255,0.35);
+      animation: navPremiumGlow 2.6s ease-in-out infinite;
+    }
+    .nav-premium-link.active > a,
+    .nav-premium-link:hover > a {
+      background: linear-gradient(135deg, rgba(96,165,250,0.5), rgba(6,182,212,0.4));
+      border-color: rgba(255,255,255,0.6);
+    }
+    .nav-premium-link:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: -0.35em;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.35);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-premium-link > a { animation: none !important; }
+    }
   </style>
 <link data-snapdom="injected-import" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
 </head>
 <body class="antialiased">
-<!-- Ribbons cursor-trail effect: fixed, full-viewport, sits above everything,
-     never blocks clicks (pointer-events:none on the layer itself; the ribbons
-     script reads mouse position from window events instead). -->
-<div id="cursorRibbonsBg" style="position:fixed; inset:0; z-index:9998; pointer-events:none;"></div>
 <div id="depthOverlay"></div>
 <div class="w-full bg-white min-h-screen relative overflow-hidden">
 <!-- BEGIN: Header -->
@@ -967,14 +1001,14 @@
 <div class="gooey-nav-container hidden md:block" id="gooeyNav">
 <nav>
 <ul id="gooeyNavList">
-<li class="active"><a href="#heroSection">Home</a></li>
+<li class="active nav-premium-link"><a href="#heroSection">Home</a></li>
+<li class="nav-premium-link"><a href="explore-ocean.html">Explore Ocean</a></li>
+<li class="nav-premium-link"><a href="marine-life.html">Marine Life</a></li>
 <li><a href="#marineOracleSection">Explore</a></li>
 <li><a href="#oceanHealthSection">Monitor</a></li>
 <li><a href="#insightsSection">Insights</a></li>
 <li><a href="#conservationSection">Conservation</a></li>
 <li><a href="#aboutSection">About</a></li>
-<li><a href="explore-ocean.html">Explore Ocean</a></li>
-<li><a href="marine-life.html">Marine Life</a></li>
 </ul>
 </nav>
 <span class="effect filter" id="gooeyFilter"></span>
@@ -998,14 +1032,14 @@
 </button>
 </div>
 <ul class="flex flex-col px-6 py-4 gap-1 text-base">
-<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#heroSection">Home</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300 font-bold text-cyan-300" href="#heroSection">Home</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300 font-bold text-cyan-300" href="explore-ocean.html">Explore Ocean</a></li>
+<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300 font-bold text-cyan-300" href="marine-life.html">Marine Life</a></li>
 <li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#marineOracleSection">Explore</a></li>
 <li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#oceanHealthSection">Monitor</a></li>
 <li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#insightsSection">Insights</a></li>
 <li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#conservationSection">Conservation</a></li>
-<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="#aboutSection">About</a></li>
-<li><a class="block py-3 border-b border-white/10 hover:text-cyan-300" href="explore-ocean.html">Explore Ocean</a></li>
-<li><a class="block py-3 hover:text-cyan-300" href="marine-life.html">Marine Life</a></li>
+<li><a class="block py-3 hover:text-cyan-300" href="#aboutSection">About</a></li>
 </ul>
 </nav>
 
@@ -1082,8 +1116,8 @@
 </div>
 <div class="grid lg:grid-cols-5 gap-6">
 <div class="lg:col-span-2 relative rounded-3xl overflow-hidden ocean-feed-panel min-h-[380px] lg:min-h-[520px] flex flex-col justify-between p-6" id="reefFeedPanel">
+<video id="reefVideoSource" class="absolute inset-0 w-full h-full object-cover" style="z-index:0; pointer-events:none;" autoplay="" loop="" muted="" playsinline="" preload="auto"></video>
 <canvas id="reefCanvas" class="absolute inset-0 w-full h-full block" style="z-index:0;"></canvas>
-<video id="reefVideoSource" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;" autoplay="" loop="" muted="" playsinline="" preload="auto"></video>
 <div class="caustics-overlay" style="z-index:1; mix-blend-mode:screen; opacity:0.25;"></div>
 <div class="feed-scanlines" style="z-index:1;"></div>
 <div class="absolute inset-0 bg-gradient-to-t from-[#020c1e]/85 via-[#04102a]/10 to-[#04102a]/0" style="z-index:1;"></div>
@@ -1111,7 +1145,9 @@
 </div>
 </div>
 <div class="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-5" id="oceanMetricsGrid">
-<div class="health-card status-info ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"24.6","suffix":"°C","trend":"+ 1.2°C","status":"good"},{"value":"24.8","suffix":"°C","trend":"+ 1.4°C","status":"good"},{"value":"24.3","suffix":"°C","trend":"+ 0.9°C","status":"good"}]'>
+<div class="health-card status-info ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item relative overflow-hidden isolate" data-cycle='[{"value":"24.6","suffix":"°C","trend":"+ 1.2°C","status":"good"},{"value":"24.8","suffix":"°C","trend":"+ 1.4°C","status":"good"},{"value":"24.3","suffix":"°C","trend":"+ 0.9°C","status":"good"}]'>
+<img src="public/cards/oceantemperature.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-45 pointer-events-none" style="z-index:-1;">
+<div class="absolute inset-0 bg-gradient-to-b from-white/20 via-white/55 to-white/85" style="z-index:-1;"></div>
 <div class="flex items-center justify-between mb-4">
 <div class="health-icon">
 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 14.76V4a2 2 0 114 0v10.76a4 4 0 11-4 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
@@ -1125,7 +1161,9 @@
 <span class="metric-trend-text">+ 1.2°C</span>
 </div>
 </div>
-<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"72","suffix":"%","trend":"Good","status":"good"},{"value":"74","suffix":"%","trend":"Good","status":"good"},{"value":"70","suffix":"%","trend":"Stable","status":"good"}]'>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item relative overflow-hidden isolate" data-cycle='[{"value":"72","suffix":"%","trend":"Good","status":"good"},{"value":"74","suffix":"%","trend":"Good","status":"good"},{"value":"70","suffix":"%","trend":"Stable","status":"good"}]'>
+<img src="public/cards/coralhealth_.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-45 pointer-events-none" style="z-index:-1;">
+<div class="absolute inset-0 bg-gradient-to-b from-white/20 via-white/55 to-white/85" style="z-index:-1;"></div>
 <div class="flex items-center justify-between mb-4">
 <div class="health-icon">
 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 21c-4-2-7-5.5-7-9.5A5.5 5.5 0 0112 6a5.5 5.5 0 017 5.5c0 4-3 7.5-7 9.5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><path d="M12 21V9" stroke-linecap="round" stroke-width="1.6"></path></svg>
@@ -1135,7 +1173,9 @@
 <div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">72%</div>
 <div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Good</span></div>
 </div>
-<div class="health-card status-warn ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-yellow-200 bg-gradient-to-b from-white to-yellow-50/60 reveal-item" data-cycle='[{"value":"1.8","suffix":" kg/km²","trend":"Moderate","status":"warn"},{"value":"1.6","suffix":" kg/km²","trend":"Improving","status":"good"},{"value":"2.0","suffix":" kg/km²","trend":"Moderate","status":"warn"}]'>
+<div class="health-card status-warn ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-yellow-200 bg-gradient-to-b from-white to-yellow-50/60 reveal-item relative overflow-hidden isolate" data-cycle='[{"value":"1.8","suffix":" kg/km²","trend":"Moderate","status":"warn"},{"value":"1.6","suffix":" kg/km²","trend":"Improving","status":"good"},{"value":"2.0","suffix":" kg/km²","trend":"Moderate","status":"warn"}]'>
+<img src="public/cards/densityplastic.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-45 pointer-events-none" style="z-index:-1;">
+<div class="absolute inset-0 bg-gradient-to-b from-white/20 via-white/55 to-white/85" style="z-index:-1;"></div>
 <div class="flex items-center justify-between mb-4">
 <div class="health-icon">
 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0l1 12a2 2 0 002 2h4a2 2 0 002-2l1-12" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
@@ -1145,7 +1185,9 @@
 <div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">1.8<span class="text-sm font-semibold text-gray-400 ml-1">kg/km²</span></div>
 <div class="trend-pill metric-trend text-xs text-yellow-600"><span class="metric-trend-text">Moderate</span></div>
 </div>
-<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"68","suffix":"%","trend":"Good","status":"good"},{"value":"69","suffix":"%","trend":"Good","status":"good"},{"value":"67","suffix":"%","trend":"Stable","status":"good"}]'>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item relative overflow-hidden isolate" data-cycle='[{"value":"68","suffix":"%","trend":"Good","status":"good"},{"value":"69","suffix":"%","trend":"Good","status":"good"},{"value":"67","suffix":"%","trend":"Stable","status":"good"}]'>
+<img src="public/cards/marinebiodiversity.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-45 pointer-events-none" style="z-index:-1;">
+<div class="absolute inset-0 bg-gradient-to-b from-white/20 via-white/55 to-white/85" style="z-index:-1;"></div>
 <div class="flex items-center justify-between mb-4">
 <div class="health-icon">
 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><circle cx="15" cy="12" r="1.2" fill="currentColor"></circle></svg>
@@ -1155,7 +1197,9 @@
 <div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">68%</div>
 <div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Good</span></div>
 </div>
-<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"85","suffix":"%","trend":"Excellent","status":"good"},{"value":"87","suffix":"%","trend":"Excellent","status":"good"},{"value":"83","suffix":"%","trend":"Very Good","status":"good"}]'>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item relative overflow-hidden isolate" data-cycle='[{"value":"85","suffix":"%","trend":"Excellent","status":"good"},{"value":"87","suffix":"%","trend":"Excellent","status":"good"},{"value":"83","suffix":"%","trend":"Very Good","status":"good"}]'>
+<img src="public/cards/waterquality.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-45 pointer-events-none" style="z-index:-1;">
+<div class="absolute inset-0 bg-gradient-to-b from-white/20 via-white/55 to-white/85" style="z-index:-1;"></div>
 <div class="flex items-center justify-between mb-4">
 <div class="health-icon">
 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3s6 6.5 6 11a6 6 0 11-12 0c0-4.5 6-11 6-11z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
@@ -1165,7 +1209,9 @@
 <div class="metric-value text-3xl md:text-4xl font-display font-bold text-gray-900 mb-1">85%</div>
 <div class="trend-pill metric-trend text-xs text-green-600"><span class="metric-trend-text">Excellent</span></div>
 </div>
-<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item" data-cycle='[{"value":"Low","suffix":"","trend":"Stable","status":"good"},{"value":"Low","suffix":"","trend":"Improving","status":"good"},{"value":"Moderate","suffix":"","trend":"Watch","status":"warn"}]'>
+<div class="health-card ocean-cycle-card rounded-2xl p-6 flex flex-col justify-between border border-blue-100/70 bg-gradient-to-b from-white to-blue-50/40 reveal-item relative overflow-hidden isolate" data-cycle='[{"value":"Low","suffix":"","trend":"Stable","status":"good"},{"value":"Low","suffix":"","trend":"Improving","status":"good"},{"value":"Moderate","suffix":"","trend":"Watch","status":"warn"}]'>
+<img src="public/cards/indexrisk_.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-45 pointer-events-none" style="z-index:-1;">
+<div class="absolute inset-0 bg-gradient-to-b from-white/20 via-white/55 to-white/85" style="z-index:-1;"></div>
 <div class="flex items-center justify-between mb-4">
 <div class="health-icon">
 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><path d="M9.5 12l1.8 1.8L14.5 10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
@@ -1255,82 +1301,7 @@
 </div>
 </section>
 <!-- END: How It Works -->
-<!-- BEGIN: Live Coastal Map -->
-<section class="py-12 px-8 bg-brand-light border-y border-blue-100 relative reveal">
-<div class="wave-divider text-white" style="top:-1px; bottom:auto; transform:scaleY(-1);">
-<svg preserveAspectRatio="none" viewBox="0 0 1200 48" xmlns="http://www.w3.org/2000/svg"><path d="M0 24 Q150 0 300 24 T600 24 T900 24 T1200 24 V48 H0 Z" fill="currentColor"></path></svg>
-</div>
-<div class="mb-6 relative z-10">
-<h2 class="text-xl font-bold text-gray-900 uppercase tracking-wide">Live Coastal Map</h2>
-<p class="text-sm text-gray-600">Real-time condition and risk levels across coastal regions</p>
-</div>
-<div class="relative h-[450px] w-full rounded-2xl overflow-hidden shadow-inner bg-blue-50 border border-blue-100 flex">
-<div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at 50% 50%, #60a5fa 0%, transparent 70%);"></div>
-<svg class="current-flow" preserveAspectRatio="none" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
-<path d="M-50 100 Q 200 60 400 110 T 850 90"></path>
-<path d="M-50 220 Q 220 260 420 210 T 850 240"></path>
-<path d="M-50 340 Q 200 300 400 350 T 850 320"></path>
-</svg>
-<div id="mapLoadingOverlay">
-<div class="bubble-loader">
-<span style="left:10px; width:8px; height:8px; animation-delay:0s;"></span>
-<span style="left:30px; width:12px; height:12px; animation-delay:0.2s;"></span>
-<span style="left:50px; width:7px; height:7px; animation-delay:0.4s;"></span>
-<span style="left:70px; width:10px; height:10px; animation-delay:0.6s;"></span>
-</div>
-<span class="text-xs font-semibold text-blue-400 uppercase tracking-wider">Loading live conditions…</span>
-</div>
-<div class="absolute top-6 left-6 bg-white p-4 rounded-xl shadow-md border border-gray-100 w-48 z-10">
-<h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Risk Levels</h4>
-<ul class="space-y-2 text-sm text-gray-700">
-<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span> Low</li>
-<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellow-400 mr-2"></span> Moderate</li>
-<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-orange-500 mr-2"></span> High</li>
-<li class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-2"></span> Critical</li>
-</ul>
-</div>
-<div class="absolute top-6 right-6 glass-card p-6 rounded-2xl w-80 z-10">
-<h3 class="text-lg font-bold text-gray-900 mb-1">Bluehaven Beach</h3>
-<div class="flex items-center text-sm font-medium text-gray-700 mb-6">
-<span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2"></span>
-              Low Risk
-            </div>
-<div class="space-y-3 text-sm border-b border-gray-200 pb-6 mb-6">
-<div class="flex justify-between">
-<span class="text-gray-500">Water Temp.</span>
-<span class="font-medium text-gray-900">24.2°C</span>
-</div>
-<div class="flex justify-between">
-<span class="text-gray-500">Visibility</span>
-<span class="font-medium text-gray-900">20 m</span>
-</div>
-<div class="flex justify-between">
-<span class="text-gray-500">Waves</span>
-<span class="font-medium text-gray-900">0.6 m</span>
-</div>
-<div class="flex justify-between">
-<span class="text-gray-500">Wind</span>
-<span class="font-medium text-gray-900">8 km/h</span>
-</div>
-</div>
-<button class="w-full py-2 text-brand-blue font-medium text-sm hover:underline">
-              Switch Globe View
-            </button>
-</div>
-<div class="absolute bottom-6 right-6 flex flex-col space-y-2 z-10">
-<button class="w-8 h-8 bg-white rounded-full shadow border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-</button>
-<button class="w-8 h-8 bg-white rounded-full shadow border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-</button>
-</div>
-</div>
-<div class="wave-divider text-brand-light" style="bottom:-1px;">
-<svg preserveAspectRatio="none" viewBox="0 0 1200 48" xmlns="http://www.w3.org/2000/svg"><path d="M0 24 Q150 0 300 24 T600 24 T900 24 T1200 24 V48 H0 Z" fill="currentColor"></path></svg>
-</div>
-</section>
-<!-- END: Live Coastal Map -->
+<!-- Live Coastal Map removed per request -->
 <!-- BEGIN: Live Alerts Feed -->
 <section class="py-16 px-8 relative overflow-hidden reveal" id="liveAlertsSection">
 <div id="liveAlertsParticlesBg" class="absolute inset-0 z-0 pointer-events-none"></div>
@@ -1530,7 +1501,7 @@
      gradient overlay existed, so nothing ever played. Added the video +
      species-video class (see CSS) under each overlay. Point src at your
      real clip files. -->
-<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item" onclick="window.location.href='marine-life.html'" role="link" tabindex="0" onkeydown="if(event.key==='Enter')window.location.href='marine-life.html'">
 <video class="species-video" autoplay="" loop="" muted="" playsinline="">
 <source src="public/turtle.mp4" type="video/mp4">
 </video>
@@ -1540,7 +1511,7 @@
 <svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
 </div>
 </div>
-<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item" onclick="window.location.href='marine-life.html'" role="link" tabindex="0" onkeydown="if(event.key==='Enter')window.location.href='marine-life.html'">
 <video class="species-video" autoplay="" loop="" muted="" playsinline="">
 <source src="public/dolphin.mp4" type="video/mp4">
 </video>
@@ -1550,7 +1521,7 @@
 <svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
 </div>
 </div>
-<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item" onclick="window.location.href='marine-life.html'" role="link" tabindex="0" onkeydown="if(event.key==='Enter')window.location.href='marine-life.html'">
 <video class="species-video" autoplay="" loop="" muted="" playsinline="">
 <source src="public/mantaray.mp4" type="video/mp4">
 </video>
@@ -1560,7 +1531,7 @@
 <svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
 </div>
 </div>
-<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item" onclick="window.location.href='marine-life.html'" role="link" tabindex="0" onkeydown="if(event.key==='Enter')window.location.href='marine-life.html'">
 <video class="species-video" autoplay="" loop="" muted="" playsinline="">
 <source src="public/jellyfish.mp4" type="video/mp4">
 </video>
@@ -1570,7 +1541,7 @@
 <svg class="h-4 w-4 text-white/80 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
 </div>
 </div>
-<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item">
+<div class="h-80 border border-white/30 rounded-xl p-4 flex flex-col justify-end relative group hover:border-blue-300 transition cursor-pointer shadow-sm overflow-hidden magic-card species-card sonar-zone reveal-item" onclick="window.location.href='marine-life.html'" role="link" tabindex="0" onkeydown="if(event.key==='Enter')window.location.href='marine-life.html'">
 <video class="species-video" autoplay="" loop="" muted="" playsinline="">
 <source src="public/clownfish.mp4" type="video/mp4">
 </video>
@@ -2015,22 +1986,28 @@
 
       const REEF_FEEDS = [
         {
-          src: 'public/reef-feed-1.mp4',
+          src: 'public/cards/Landscape1.mp4',
           cam: 'Coral Reef Cam · Palawan',
           depth: 'Depth 12m · North Reef',
           buoy: 'Streaming from buoy cluster B-114'
         },
         {
-          src: 'public/reef-feed-2.mp4',
+          src: 'public/cards/Fish.mp4',
           cam: 'Surface Cam · West Lagoon',
           depth: 'Depth 8m · West Lagoon',
           buoy: 'Streaming from buoy cluster B-092'
         },
         {
-          src: 'public/reef-feed-3.mp4',
+          src: 'public/cards/Landscape2.mp4',
           cam: 'Drone Cam · Outer Shelf',
           depth: 'Depth 18m · Outer Shelf',
           buoy: 'Streaming from buoy cluster B-201'
+        },
+        {
+          src: 'public/cards/Landscape3.mp4',
+          cam: 'Coastal Cam · South Bay',
+          depth: 'Depth 5m · South Bay',
+          buoy: 'Streaming from buoy cluster B-045'
         }
       ];
 
@@ -2088,7 +2065,7 @@
       import('three').then((THREE) => {
         let renderer;
         try {
-          renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+          renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         } catch (e) {
           startFallback();
           return;
@@ -2109,7 +2086,7 @@
         const texture = new THREE.VideoTexture(videoEl);
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
-        texture.format = THREE.RGBFormat;
+        texture.format = THREE.RGBAFormat;
 
         const uniforms = {
           uTexture: { value: texture },
@@ -3579,16 +3556,7 @@ void main(){
     enableShaderEffect: true
   });
 
-  // Site-wide cursor-trail ribbon: follows the mouse everywhere on the page.
-  initRibbonsBackground('cursorRibbonsBg', {
-    baseThickness: 18,
-    colors: ["#22D3EE"],
-    speedMultiplier: 0.5,
-    maxAge: 500,
-    pointCount: 30,
-    enableFade: false,
-    enableShaderEffect: true
-  }, window);
+  // Site-wide cursor-trail ribbon removed per request.
 </script>
 
 <script>
@@ -3792,42 +3760,4 @@ void main(){
         return;
       }
       status.classList.remove('text-red-200');
-      status.textContent = `Thanks — we'll be in touch at ${value}.`;
-      form.reset();
-      setTimeout(() => { status.textContent = defaultStatus; }, 6000);
-    });
-  })();
-
-  // ===== "Coming soon" toast for pages/features that don't exist yet =====
-  // Any link or button tagged data-soon="Label" shows a small toast instead
-  // of silently doing nothing.
-  (function () {
-    let toastEl = null;
-    let hideTimer = null;
-    function showToast(label) {
-      if (!toastEl) {
-        toastEl = document.createElement('div');
-        toastEl.setAttribute('role', 'status');
-        toastEl.style.cssText = 'position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:#0a1730; color:#fff; padding:0.75rem 1.25rem; border-radius:9999px; font-size:0.8rem; font-weight:500; box-shadow:0 10px 30px rgba(0,0,0,0.35); z-index:10000; opacity:0; transition:opacity .25s ease, transform .25s ease; pointer-events:none;';
-        document.body.appendChild(toastEl);
-      }
-      toastEl.textContent = `${label} is coming soon.`;
-      requestAnimationFrame(() => {
-        toastEl.style.opacity = '1';
-        toastEl.style.transform = 'translateX(-50%) translateY(0)';
-      });
-      clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => {
-        toastEl.style.opacity = '0';
-        toastEl.style.transform = 'translateX(-50%) translateY(20px)';
-      }, 2200);
-    }
-    document.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-soon]');
-      if (!el) return;
-      e.preventDefault();
-      showToast(el.getAttribute('data-soon'));
-    });
-  })();
-</script>
-</body></html>
+      status.textContent = `Thanks — we'll be in touch at                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  

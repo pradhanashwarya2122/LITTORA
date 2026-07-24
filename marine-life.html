@@ -245,10 +245,18 @@
 <nav class="glass flex items-center justify-between px-6 py-2.5 border-x-0 border-t-0 flex-shrink-0" style="border-bottom:1px solid rgba(133,148,149,.2);position:relative;z-index:50;">
   <div class="flex items-center gap-7">
     <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:#d4e4fa;letter-spacing:-.03em;">LITTORA</div>
+    <style>
+      @keyframes navPremiumGlow {
+        0%, 100% { box-shadow: 0 0 8px rgba(0,240,255,0.35); }
+        50%      { box-shadow: 0 0 16px rgba(0,240,255,0.75); }
+      }
+      .nav-premium-link { animation: navPremiumGlow 2.6s ease-in-out infinite; border-radius: 9999px; padding: 4px 10px; }
+      @media (prefers-reduced-motion: reduce) { .nav-premium-link { animation: none !important; } }
+    </style>
     <div class="hidden lg:flex items-center gap-5">
-      <a href="index.html" class="flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">home</span>Home</a>
-      <a href="explore-ocean.html" class="flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">explore</span>Explore Ocean</a>
-      <a href="marine-life.html" class="flex items-center gap-1.5 text-xs font-bold border-b" style="color:#00f0ff;border-color:#00f0ff;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">sailing</span>Marine Life</a>
+      <a href="index.html" class="nav-premium-link flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">home</span>Home</a>
+      <a href="explore-ocean.html" class="nav-premium-link flex items-center gap-1.5 text-xs" style="color:#b9cacb;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">explore</span>Explore Ocean</a>
+      <a href="marine-life.html" class="nav-premium-link flex items-center gap-1.5 text-xs font-bold border-b" style="color:#00f0ff;border-color:#00f0ff;font-family:'JetBrains Mono',monospace;"><span class="msym" style="font-size:16px;">sailing</span>Marine Life</a>
     </div>
   </div>
   <div class="flex items-center gap-2">
