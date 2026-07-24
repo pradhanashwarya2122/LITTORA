@@ -2987,13 +2987,17 @@ void main(){
       navList.querySelectorAll('li').forEach((li, index) => {
         const a = li.querySelector('a');
         if (!a) return;
+        // Only intercept in-page anchor links (e.g. "#heroSection") for the
+        // gooey pill animation. Real page links (Explore Ocean, Marine Life)
+        // must be allowed to navigate normally.
+        const isPageLink = !a.getAttribute('href').startsWith('#');
         a.addEventListener('click', e => {
-          e.preventDefault();
+          if (!isPageLink) e.preventDefault();
           handleClick(li, index);
         });
         a.addEventListener('keydown', e => {
           if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
+            if (!isPageLink) e.preventDefault();
             handleClick(li, index);
           }
         });
