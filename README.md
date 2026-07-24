@@ -165,6 +165,7 @@ LITTORA transforms marine intelligence into an experience that anyone can explor
 By making ocean data more engaging, visual, and accessible, we hope to inspire greater awareness, curiosity, and action toward protecting our blue planet.
 
 ---
+---
 
 <div align="center">
 
