@@ -110,12 +110,6 @@
         }
         #transition-flash.flash { opacity: 0.55; }
 
-        #location-card {
-            transform: translateY(24px); opacity: 0; pointer-events: none;
-            transition: transform 0.5s cubic-bezier(.2,.8,.2,1), opacity 0.4s ease;
-        }
-        #location-card.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
-
         #right-panel-content { transition: opacity 0.35s ease; }
         #right-panel-content.fading { opacity: 0; }
 
@@ -125,10 +119,9 @@
         /* ---- Premium polish ---- */
         nav { box-shadow: 0 1px 0 rgba(16,24,40,0.04), 0 1px 12px rgba(16,24,40,0.03); }
         aside { box-shadow: 0 0 24px rgba(16,24,40,0.02); }
-        .region-chip, #globe-frame, #location-card, #right-panel-content .border {
+        .region-chip, #globe-frame, #right-panel-content .border {
             transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
         }
-        #location-card { box-shadow: 0 12px 32px rgba(0,61,155,0.14); }
         aside h2, aside h3, h4.uppercase { letter-spacing: 0.06em; }
         input, button { transition: all 0.2s ease; }
         button:active { transform: scale(0.97); }
@@ -221,22 +214,6 @@
 
         img.thumb-img { transition: transform .5s ease; }
         .bento-card:hover img.thumb-img { transform: scale(1.06); }
-
-        /* Smooth update pulse for the floating location card whenever a new
-           pin is selected on the globe — brief fade + rise so the swap in
-           image/score/name doesn't feel like an abrupt jump-cut. */
-        @keyframes lcUpdatePulse {
-          0%   { opacity: .35; transform: translateY(4px) scale(.985); }
-          60%  { opacity: 1; transform: translateY(-1px) scale(1.005); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        #location-card.lc-updating .media-frame,
-        #location-card.lc-updating #lc-name,
-        #location-card.lc-updating #lc-sub {
-          animation: lcUpdatePulse .45s cubic-bezier(.22,1,.36,1) both;
-        }
-        #location-card.lc-updating #lc-name { animation-delay: .04s; }
-        #location-card.lc-updating #lc-sub { animation-delay: .08s; }
 
         /* ---- Vanta layer behind the globe ---- */
         #vanta-globe-bg { position: absolute; inset: 0; z-index: 0; background: #021325; }
@@ -356,16 +333,6 @@
     </button>
   </div>
 
-  <!-- Floating location card, shown after fly-to -->
-  <div id="location-card" class="bento-card absolute bottom-margin-page right-margin-page z-30 w-72 bg-surface-container-lowest/95 backdrop-blur-md border border-primary rounded-lg p-4 shadow-lg">
-    <div class="media-frame h-24 rounded-md mb-3 ocean-fallback-0">
-      <img id="lc-img" class="thumb-img" alt="" src=""/>
-      <div class="media-shine"></div>
-      <span id="lc-score-badge" class="media-badge inline-flex w-fit items-center gap-1 bg-black/45 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">— /100</span>
-    </div>
-    <h4 id="lc-name" class="font-headline-md text-headline-md text-primary truncate">—</h4>
-    <p id="lc-sub" class="text-label-sm font-label-sm text-on-surface-variant truncate">—</p>
-  </div>
 </div>
 
 <!-- Bottom Carousel Area -->
@@ -666,7 +633,6 @@ function highlightCarouselChip(id){
    ============================================================ */
 const globeFrame = document.getElementById('globe-frame');
 const backBtn = document.getElementById('back-to-globe-btn');
-const card = document.getElementById('location-card');
 const flash = document.getElementById('transition-flash');
 
 function requestFlyTo(id){
@@ -674,51 +640,31 @@ function requestFlyTo(id){
   setTimeout(() => flash.classList.remove('flash'), 500);
   backBtn.classList.remove('hidden-btn');
   globeFrame.contentWindow.postMessage({ type: 'flyTo', id }, '*');
+  // Update LOCATION OVERVIEW immediately from local data rather than
+  // waiting on the iframe to round-trip a 'locationSelected' message back —
+  // that reply only fires for an actual pin click inside the globe, so
+  // clicking a Popular Regions card was leaving the panel stuck on the
+  // previously selected place.
+  const loc = LOCATIONS.find(l => l.id === id);
+  if (loc){
+    renderRightPanel(loc);
+    highlightCarouselChip(loc.id);
+  }
 }
 
 backBtn.addEventListener('click', () => {
-  card.classList.remove('show');
   backBtn.classList.add('hidden-btn');
   globeFrame.contentWindow.postMessage({ type: 'reset' }, '*');
 });
-
-function updateLocationCard(loc){
-  const nameEl = document.getElementById('lc-name');
-  const subEl = document.getElementById('lc-sub');
-  const imgEl = document.getElementById('lc-img');
-  const badgeEl = document.getElementById('lc-score-badge');
-  const frameEl = imgEl.closest('.media-frame');
-
-  nameEl.textContent = loc.name;
-  subEl.textContent = loc.country + ' · ' + loc.status;
-  badgeEl.textContent = (loc.regionScore != null ? loc.regionScore : '—') + ' /100';
-
-  // Fallback gradient behind the photo (per-location tint) in case the
-  // image is still loading or missing — matches the carousel cards below.
-  frameEl.className = 'media-frame h-24 rounded-md mb-3 ocean-fallback-' + (loc.fb != null ? loc.fb : 0);
-  imgEl.style.display = '';
-  imgEl.onerror = () => { imgEl.style.display = 'none'; };
-  imgEl.alt = loc.name;
-  imgEl.src = loc.image || '';
-
-  // Smooth update animation: retrigger the CSS animation on each change.
-  card.classList.remove('lc-updating');
-  void card.offsetWidth; // force reflow so the animation restarts
-  card.classList.add('lc-updating');
-}
 
 window.addEventListener('message', (e) => {
   const data = e.data || {};
   if (data.type === 'locationSelected') {
     const loc = LOCATIONS.find(l => l.id === data.id);
     if (!loc) return;
-    updateLocationCard(loc);
-    card.classList.add('show');
     backBtn.classList.remove('hidden-btn');
     renderRightPanel(loc);
     highlightCarouselChip(loc.id);
-  } else if (data.type === 'panelClosed') {
-    card.classList.remove('show');
   }
 });
 
