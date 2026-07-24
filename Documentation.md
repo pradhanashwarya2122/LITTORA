@@ -27,8 +27,6 @@
 | **🎯 Problem Statement** | **PS02 – AI-Powered Deep Ocean Pollution & Biodiversity Monitoring** |
 | **🌊 Event** | HackOcean 2026 – Round 2 |
 
-> *Information sourced directly from the project presentation.* :contentReference[oaicite:0]{index=0}
-
 ---
 
 # 🔗 Project Links
@@ -43,7 +41,7 @@
 
 **LITTORA** is an interactive **Marine Digital Twin** that combines **ocean health monitoring, biodiversity exploration, pollution tracking, and AI-assisted environmental insights** into one immersive web platform.
 
-Rather than presenting disconnected charts and reports, LITTORA enables users to explore a living digital model of marine ecosystems through interactive visualizations, making complex environmental information accessible, engaging, and actionable for conservation organizations, coastal authorities, researchers, and the public. :contentReference[oaicite:1]{index=1}
+Rather than presenting disconnected charts and reports, LITTORA enables users to explore a living digital model of marine ecosystems through interactive visualizations, making complex environmental information accessible, engaging, and actionable for conservation organizations, coastal authorities, researchers, and the public. 
 
 ---
 
@@ -53,7 +51,7 @@ Marine ecosystem information is currently fragmented across multiple systems, ma
 
 Existing solutions are often highly technical, difficult to interpret, and lack an intuitive way to connect biodiversity, pollution, and environmental conditions.
 
-**LITTORA** solves this by bringing all critical marine intelligence into a single interactive platform, helping users better understand and protect marine ecosystems. :contentReference[oaicite:2]{index=2}
+**LITTORA** solves this by bringing all critical marine intelligence into a single interactive platform, helping users better understand and protect marine ecosystems. 
 
 ---
 
@@ -69,7 +67,7 @@ LITTORA transforms scattered environmental datasets into an immersive digital ex
 - 🪸 Simulate ecosystem changes
 - 📊 Monitor ocean health through one unified platform
 
-Unlike conventional dashboards, LITTORA focuses on **exploration, explainability, and conservation awareness**. :contentReference[oaicite:3]{index=3}
+Unlike conventional dashboards, LITTORA focuses on **exploration, explainability, and conservation awareness**. 
 
 ---
 
@@ -97,8 +95,7 @@ Understand how pollution and climate change affect marine ecosystems.
 Integrate drone imagery for future environmental monitoring.
 
 ### 📈 Explainable AI Insights
-Present environmental recommendations with transparent reasoning. :contentReference[oaicite:4]{index=4}
-
+Present environmental recommendations with transparent reasoning. 
 ---
 
 # 🛠️ Tech Stack
@@ -125,7 +122,7 @@ Present environmental recommendations with transparent reasoning. :contentRefere
 - YOLO
 - TensorFlow / PyTorch
 - Open-Meteo APIs
-- Computer Vision :contentReference[oaicite:5]{index=5}
+- Computer Vision 
 
 ---
 
