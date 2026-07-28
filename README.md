@@ -174,8 +174,6 @@ By making ocean data more engaging, visual, and accessible, we hope to inspire g
 
 ### *Explore • Understand • Protect*
 
-Built with 💙 for **HackOcean 2026**
-
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7FDBFF,30:00A8CC,70:006994,100:001F3F&height=120&section=footer"/>
 
 </div>
